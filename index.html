@@ -1,0 +1,2500 @@
+﻿      <!doctype html>
+      <html lang="es">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>QTI — ¿Qué Te Imaginás?</title>
+        <link rel="preload" href="/fonts/Gobold Lowplus.otf" as="font" type="font/otf" crossorigin>
+        <link rel="preload" href="/teleprompter.png" as="image" imagesizes="100vw">
+        <link rel="preload" href="/fondos/fondo-cuadros-izq.png" as="image">
+        <link rel="preload" href="/fondos/fondo-cuadros-der.png" as="image">
+        <style>
+        /* =========================================================
+           QTI — CSS consolidado y ordenado (misma UI, sin duplicados)
+           Estructura:
+           1) Fuentes y variables
+           2) Reset & base
+           3) Navbar (fijo + shrink + drawer)
+           4) Hero / Carrusel
+           5) “Elegí tu cuadro”
+           6) Generador
+           7) Ticker
+           8) Bloques varios (videos, bios, pdf, footer)
+           9) Modal de resultado
+           10) Utilidades (gradientes, helpers)
+           11) Responsive (≤960, ≤640)
+           ========================================================= */
+
+        /* =========================
+           1) Fuentes y variables
+           ========================= */
+        @font-face{
+          font-family:"C64";
+          src:url("/fonts/Commodore64.ttf") format("truetype");
+          font-weight:400;
+          font-style:normal;
+          font-display:swap;
+        }
+        @font-face{
+          font-family:"Gobold";
+          src:url("/fonts/Gobold Lowplus.otf") format("opentype");
+          font-weight:400;
+          font-style:normal;
+          font-display:swap;
+        }
+
+        :root{
+          /* Colores base */
+          --bg:#ffffff;
+          --ink:#f6f6f7;
+          --muted:#858792;
+          --card:#15161a;
+          --stroke:#e6e6e9;
+          --accent:#e70d0c;     /* rojo QTI */
+          --accent2:#18c8dd;    /* cian QTI */
+
+          /* Tipos y radios */
+          --title-font:"C64", system-ui, sans-serif;
+          --copy-font:"Gobold", system-ui, Inter, Segoe UI, Roboto, sans-serif;
+          --radius:16px;
+
+          /* Header / logo (grande → compacto) */
+          --header-h-big:90px;
+          --header-h-compact:60px;
+          --logo-big:120px;
+          --logo-small:40px;
+
+          /* padding vertical total del .nav-inner = 10px arriba + 10px abajo */
+          --nav-vpad:20px;
+          /* borde inferior del header */
+          --header-border:1px;
+          /* fallback que coincide con la altura real del header grande */
+          --header-offset: calc(var(--header-h-big) + var(--nav-vpad) + var(--header-border));
+          --anchor-offset: calc(var(--header-h-big) + var(--nav-vpad) + var(--header-border));
+
+
+          /* Copetes / subtextos */
+          --lead-color:#555;
+          --lead-weight:500;
+          --lead-size:clamp(20px, 1.6vw, 22px);
+          --lead-lh:1.6;
+          --lead-max:70ch;
+
+          /* Grilla de obras */
+          --art-col-w:280px;
+          --art-row-h:255px;
+          --art-gap:10px;
+
+          /* Teleprompter banner */
+          --tele-h:clamp(56px, 8vw, 88px);
+          --tele-speed:28s;
+          --tele-bg:#101010;
+
+          /* Fondo “mural” disponible globalmente */
+          --mural-img:url("/fondos/fondo-videos.png");
+          --mural-opacity:.25;
+          --mural-width:min(1470px, 110vw);
+
+          /* Footer */
+          --footer-bg:#c4c8d3;
+          --footer-ink:#060607;
+          --footer-border:#e6e6e9;
+          --footer-logo-h:58px;
+          --footer-pad:8px;
+        }
+
+          body{ padding-top: var(--header-offset); }
+          html{ scroll-padding-top: calc(var(--header-offset) + 12px); }
+
+        /* =========================
+           2) Reset & base
+           ========================= */
+        *{ box-sizing:border-box }
+        html,body{ height:100% }
+        html{
+          scroll-behavior:auto;
+          /* Compensa la altura del header fijo (el JS ajusta --anchor-offset) */
+          scroll-padding-top:calc(var(--anchor-offset) + 12px);
+          background:transparent;
+        }
+        html.smooth-scroll{
+          scroll-behavior:smooth;
+        }
+        body{
+          margin:0;
+          /* Deja lugar al header fijo (el JS ajusta --header-offset) */
+          padding-top:var(--header-offset);
+          background:var(--bg);
+          color:#0f0f10;
+          font:400 16px/1.5 var(--copy-font);
+          position:relative;
+          overflow-x:hidden;
+        }
+        body::before{
+          content:"";
+          position:fixed; inset:0;
+          z-index:-1;
+          pointer-events:none;
+          background-image:
+            linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,248,252,.96));
+          background-repeat:no-repeat;
+          background-position:center;
+          background-size:auto;
+          opacity:1;
+        }
+        input,button,select,textarea{ font:inherit }
+        .container{
+          max-width:1280px;
+          margin:0 auto;
+          padding:clamp(12px,2.2vw,20px);
+        }
+        section[id]{ scroll-margin-top:calc(var(--anchor-offset) + 12px) }
+        :focus-visible{ outline:3px solid #ffe066; outline-offset:2px; border-radius:6px }
+        [hidden]{ display:none !important }
+
+        /* =========================
+           3) Navbar (fijo + shrink + drawer)
+           ========================= */
+        header.navbar{
+          position:fixed; top:0; left:0; right:0;
+          z-index:9999;
+          background:#fff;
+          border-bottom:1px solid var(--stroke);
+        }
+        .nav-inner{
+          max-width:1280px; margin:0 auto;
+          padding:3px clamp(16px,3vw,28px);
+          display:grid; grid-template-columns:1fr auto 1fr;
+          align-items:center; gap:12px;
+          min-width:0;
+          min-height:var(--header-h-big);
+          transition:min-height .25s ease, padding .25s ease;
+        }
+        header.navbar.is-compact .nav-inner{ min-height:var(--header-h-compact) }
+
+        .logo-img{
+          height:var(--logo-big);
+          display:block;
+          transition:height .25s ease, transform .25s ease;
+        }
+        header.navbar.is-compact .logo-img{ height:var(--logo-small) }
+
+        .site-nav{
+          display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+          min-width:0;
+        }
+        .site-nav.left{ justify-content:flex-start }
+        .site-nav.right{ justify-content:flex-end }
+
+
+        /* Hamburguesa (visible en mobile) */
+        .menu-toggle{
+          display:none;
+          width:40px; height:40px;
+          border-radius:10px; border:1px solid var(--stroke);
+          background:#fff; align-items:center; justify-content:center;
+          cursor:pointer; position:relative;
+        }
+        .menu-toggle::before,
+        .menu-toggle::after,
+        .menu-toggle span{
+          content:""; position:absolute; width:20px; height:2px; background:#0f0f10;
+          transition:transform .2s ease, opacity .2s ease;
+        }
+        .menu-toggle::before{ transform:translateY(-6px) }
+        .menu-toggle span{ transform:translateY(0) }
+        .menu-toggle::after{ transform:translateY(6px) }
+        .menu-toggle[aria-expanded="true"]::before{ transform:rotate(45deg) }
+        .menu-toggle[aria-expanded="true"]::after{ transform:rotate(-45deg) }
+        .menu-toggle[aria-expanded="true"] span{ opacity:0 }
+
+        /* Drawer lateral + backdrop */
+        .mobile-drawer{
+          position:fixed; top:0; left:0; height:100vh; width:min(78vw,320px);
+          background:#fff; border-right:1px solid var(--stroke);
+          transform:translateX(-100%);
+          transition:transform .25s ease;
+          z-index:10000; padding:12px 16px;
+          display:flex; flex-direction:column; gap:8px;
+        }
+        .mobile-drawer .mobile-menu{
+          display:flex;
+          flex-direction:column;
+          gap:14px;
+          margin:12px 0;
+        }
+        .mobile-drawer .mobile-menu a{
+          position:relative;
+          z-index:0;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          width:100%;
+          height:40px;
+          padding:0 12px;
+          border-radius:10px;
+          font-weight:700;
+          color:#0f0f10;
+          text-decoration:none;
+          background:transparent;
+          border:1px solid var(--stroke);
+          transition:
+            color .18s ease,
+            border-color .18s ease,
+            transform .18s ease;
+        }
+        .mobile-drawer .mobile-menu a::before{
+          content:"";
+          position:absolute;
+          inset:0;
+          border-radius:inherit;
+          background:#fff;
+          z-index:-1;
+          transition:background-color .18s ease;
+        }
+        .mobile-drawer .mobile-menu a::after{
+          content:"";
+          position:absolute;
+          inset:calc(-1 * var(--nav-glow-spread, 5px));
+          border-radius:inherit;
+          padding:var(--nav-glow-thickness, 8px);
+          background:linear-gradient(120deg, var(--accent), var(--accent2));
+          -webkit-mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite:xor;
+          mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite:exclude;
+          filter:blur(var(--nav-glow-blur, 7px)) saturate(1.06);
+          opacity:0;
+          transform:scale(1.01);
+          z-index:-2;
+          pointer-events:none;
+          transition:opacity .16s ease, transform .16s ease, filter .16s ease;
+        }
+        .mobile-drawer .mobile-menu a:not(.cta):hover,
+        .mobile-drawer .mobile-menu a:not(.cta):focus-visible,
+        .mobile-drawer .mobile-menu a:not(.cta):active{
+          background:#0f0f10;
+          color:#fff;
+          border-color:#0f0f10;
+          transform:translateY(-1px) scale(1.02);
+        }
+        .mobile-drawer .mobile-menu a:not(.cta):hover::before,
+        .mobile-drawer .mobile-menu a:not(.cta):focus-visible::before,
+        .mobile-drawer .mobile-menu a:not(.cta):active::before{
+          background:#0f0f10;
+        }
+        .mobile-drawer .mobile-menu a:not(.cta):hover::after,
+        .mobile-drawer .mobile-menu a:not(.cta):focus-visible::after,
+        .mobile-drawer .mobile-menu a:not(.cta):active::after{
+          opacity:1;
+          transform:scale(1.03);
+          filter:blur(calc(var(--nav-glow-blur, 7px) * 1.1)) saturate(1.12);
+        }
+        .mobile-drawer.is-open{ transform:translateX(0) }
+
+        .backdrop{
+          position:fixed; inset:0; background:rgba(0,0,0,.45);
+          z-index:9998; opacity:0; pointer-events:none; transition:opacity .2s ease;
+        }
+        .backdrop.is-open{ opacity:1; pointer-events:auto }
+
+        .mobile-header{
+          display:flex; align-items:center; gap:10px;
+          padding:6px 4px 10px;
+          border-bottom:1px solid var(--stroke);
+          margin-bottom:8px;
+        }
+        .mobile-logo{
+          display:inline-flex; align-items:center; justify-content:center;
+          height:44px; border-radius:10px; padding:2px 6px;
+          border:1px solid transparent; text-decoration:none;
+        }
+        .mobile-logo:hover{ background:#f3f4f6; border-color:var(--stroke) }
+        .mobile-logo img{ height:40px; display:block }
+
+        /* =========================
+           4) Hero / Carrusel
+           ========================= */
+        .hero-slider{
+          position:relative;
+          height:clamp(420px, 85vh, 780px);
+          overflow:hidden;
+          border-bottom:1px solid var(--stroke);
+          background:#000;
+          margin-bottom:clamp(24px, 5vh, 48px);
+        }
+        .hero-slider .slides{
+          position:relative; width:100%; height:100%;
+          display:flex; overflow-x:auto; overflow-y:hidden;
+          scroll-snap-type:x mandatory;
+          -webkit-overflow-scrolling:touch;
+          scroll-behavior:auto;
+          cursor:grab;
+          /* UX scroll */
+          touch-action:pan-x pan-y pinch-zoom;
+          overscroll-behavior-x:contain;
+          -ms-overflow-style:none; scrollbar-width:none;
+        }
+        .hero-slider .slides::-webkit-scrollbar{ display:none }
+        .hero-slider .slide{
+          position:relative; margin:0;
+          min-width:100%; height:100%; flex:0 0 100%;
+          scroll-snap-align:start;
+          scroll-snap-stop:always;
+        }
+        .hero-slider .slide img{
+          position:absolute; inset:0; width:100%; height:100%;
+          object-fit:cover; object-position:center; display:block;
+          user-select:none; -webkit-user-drag:none; pointer-events:none;
+        }
+        /* Degradé inferior para textos */
+        .hero-slider::after{
+          content:"";
+          position:absolute; left:0; right:0; bottom:0; height:42%;
+          background:linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,.65) 60%, rgba(0,0,0,.92) 100%);
+          pointer-events:none; z-index:1;
+        }
+        /* Overlay de textos y dots */
+        .hero-overlay{
+          position:absolute; left:0; right:0; bottom:0;
+          padding:28px clamp(16px,4vw,36px);
+          color:#fff; text-align:center; z-index:2;
+          pointer-events:none; /* deja pasar drag al carrusel */
+        }
+        .hero-overlay .dots,
+        .hero-overlay .dots *{ pointer-events:auto } /* pero dots clickeables */
+
+        .hero-title{
+          margin:0 0 6px; font-weight:900; letter-spacing:.5px;
+          font-size:clamp(28px, 5vw, 64px);
+          text-transform:uppercase; line-height:1.1;
+          font-family:var(--title-font);
+        }
+        .hero-sub{
+          margin:0 0 12px; color:#e8e8ee; font-size:clamp(14px,2.2vw,22px); opacity:.9; line-height:1.35;
+        }
+        .hero-slider .dots{
+          display:flex; gap:10px; align-items:center; justify-content:center; margin-top:8px;
+        }
+        .hero-slider .dot{
+          appearance:none; -webkit-appearance:none;
+          position:relative; display:inline-block;
+          width:12px; height:12px; padding:0; margin:0;
+          border-radius:50%;
+          border:2px solid #fff;
+          background:transparent; line-height:0;
+          cursor:pointer; opacity:.9;
+        }
+        .hero-slider .dot.is-active{ background:#fff }
+        .hero-slider .dot:focus-visible{ outline:2px solid #ffe066; outline-offset:2px }
+        .hero-slider .dot::after{ content:""; position:absolute; inset:-6px } /* hit area */
+        .hero-slider .slides.is-dragging{
+          cursor:grabbing; scroll-snap-type:none;
+          user-select:none; -webkit-user-select:none;
+        }
+
+        /* Flechas (si estuvieran en el DOM) */
+        .hero-slider .nav{
+          position:absolute; top:50%; transform:translateY(-50%);
+          width:38px; height:38px; border-radius:999px;
+          background:rgba(0,0,0,.35); color:#fff; border:1px solid rgba(255,255,255,.4);
+          display:grid; place-items:center; cursor:pointer; z-index:3;
+        }
+        .hero-slider .nav:hover{ background:rgba(0,0,0,.5) }
+        .hero-slider .prev{ left:10px } .hero-slider .next{ right:10px }
+        /* Ocultas por defecto para evitar duplicar UI */
+        .hero-slider .nav{ display:none !important }
+
+        /* =========================
+           5) "Elegí tu cuadro"
+           ========================= */
+        /* === Fondos decorativos izquierda/derecha para #options === */
+        #options{
+          position:relative;
+          z-index:0;
+        }
+
+        #options .card{
+          position:relative;
+          z-index:1;
+        }
+
+        .container.choose{
+          position:relative;
+          z-index:0;
+          padding-right:clamp(12px,2vw,20px);
+        }
+        .container.choose::before,
+        .container.choose::after{
+          content:"";
+          position:absolute;
+          top:clamp(-60px, -8vh, -40px);
+          bottom:clamp(-60px, -8vh, -40px);
+          left:50%;
+          width:100vw;
+          transform:translateX(-50%);
+          pointer-events:none;
+          background-repeat:no-repeat;
+          background-size:clamp(278px, 35.6vw, 581px) auto;
+          opacity:.187;
+          z-index:-1;
+        }
+        .container.choose::before{
+          background-image:url("/fondos/fondo-cuadros-izq.png");
+          background-position:calc(0% - 140px) calc(50% + 120px);
+        }
+        .container.choose::after{
+          background-image:url("/fondos/fondo-cuadros-der.png");
+          background-position:calc(100% + 70px) calc(50% + 90px);
+          background-size:clamp(413px, 53vw, 864px) auto;
+          bottom:clamp(-240px, -20vh, -140px);
+        }
+        @media (max-width:960px){
+          .container.choose::before,
+          .container.choose::after{
+            background-size:clamp(198px, 39.6vw, 370px) auto;
+            top:-40px;
+            bottom:-40px;
+          }
+          .container.choose::before{
+            background-position:calc(0% - 80px) calc(50% + 120px);
+          }
+          .container.choose::after{
+            background-position:calc(100% + 30px) calc(50% + 90px);
+            background-size:clamp(294px, 58.9vw, 551px) auto;
+            bottom:clamp(-180px, -18vh, -120px);
+          }
+        }
+        @media (max-width:640px){
+          .container.choose::before,
+          .container.choose::after{
+            background-size:clamp(145px, 51.5vw, 277px) auto;
+            top:-30px;
+            bottom:-30px;
+          }
+          .container.choose::before{
+            background-position:calc(0% - 48px) calc(50% + 120px);
+          }
+          .container.choose::after{
+            background-position:calc(100% + 14px) calc(50% + 90px);
+            background-size:clamp(215px, 76.6vw, 412px) auto;
+            bottom:clamp(-140px, -14vh, -90px);
+          }
+        }
+        .choose-grid{
+          display:grid;
+          grid-template-columns:clamp(460px, 42vw, 680px) 1fr; /* texto | obras */
+          gap:clamp(18px,3vw,28px);
+          align-items:start;
+        }
+        #options{ justify-self:end; width:max-content }
+
+        /* Títulos globales */
+        .choose h2, .gen h2, #manifiesto-title, #obras-title, #recetario-title{
+          font-family:var(--title-font);
+          font-weight:400; letter-spacing:.02em; line-height:1.1;
+        }
+        #obras-title{ color:#0f0f10; }
+        /* H2 “Elegí tu cuadro” */
+        #choose-title{
+          font-weight:400; text-transform:uppercase; letter-spacing:.02em;
+          line-height:1; font-size:clamp(44px, 6vw, 84px);
+          max-width:12ch; white-space:normal; margin-bottom:12px;
+        }
+        #choose-title span{ display:block }
+        #choose-title span + span{ margin-top:.22em }
+
+        /* Copete debajo de títulos */
+        .choose .choose-grid > div > p:first-of-type,
+        .gen .gen-grid > div > p:first-of-type,
+        #manifiesto > p{
+          font-family:var(--copy-font);
+          color:var(--lead-color);
+          font-weight:var(--lead-weight);
+          font-size:var(--lead-size);
+          line-height:var(--lead-lh);
+          max-width:var(--lead-max);
+          margin:0 0 10px;
+        }
+
+        /* Grilla de obras */
+        .options{
+          display:grid;
+          grid-template-columns:var(--art-col-w) var(--art-col-w);
+          grid-auto-rows:var(--art-row-h);
+          gap:var(--art-gap);
+          align-items:stretch;
+        }
+        .options .card{
+          display:grid; grid-template-rows:1fr auto;
+          background:#fff; border:2px solid #111; border-radius:12px;
+          overflow:hidden; cursor:pointer;
+          transition:transform .15s, box-shadow .15s, border-color .15s, outline-color .15s;
+        }
+        .options .card:hover{ transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,.08) }
+        .card-media{ height:100% }
+        .card-media img{ width:100%; height:100%; object-fit:cover; display:block }
+        .card-body{ padding:10px 12px }
+        .badge{ font-weight:800; letter-spacing:.03em }
+
+        /* Frida (vertical) a la derecha en 2 filas (desktop) */
+        .options .card[data-artwork="frida_kahlo"]{
+          grid-column:2;
+          grid-row:span 2;
+        }
+
+        /* Selección con borde degradé */
+        .options .card.selected,
+        .options .card:focus-visible{
+          border:4px solid transparent;
+          background:
+            linear-gradient(#fff,#fff) padding-box,
+            linear-gradient(120deg, var(--accent), var(--accent2)) border-box;
+          outline:3px solid rgba(24,200,221,.18);
+          outline-offset:-3px;
+          box-shadow:0 12px 40px rgba(0,0,0,.18);
+        }
+
+        /* Cartas robustas (aspect-ratio y retratos) */
+        .options{ grid-auto-rows:auto }
+        .options .card{ display:flex; flex-direction:column }
+        .card-media{ width:100%; aspect-ratio:4/3 }
+        .card-media img{ object-position:50% 50% }
+        .card.portrait .card-media{ aspect-ratio:3/4 }
+        .card.portrait .card-media img{ object-position:50% 40% }
+
+        /* =========================
+           6) Generador
+           ========================= */
+        .gen-grid{
+          display:grid;
+          grid-template-columns:1fr 1.2fr;
+          gap:clamp(16px,4vw,32px);
+          align-items:start;
+          grid-template-areas:"text prompts";
+        }
+        .gen-grid > :first-child{ grid-area:text }
+        .gen-grid > .prompts{ grid-area:prompts }
+        .gen-grid.flip{
+          grid-template-columns:1.2fr 1fr;
+          grid-template-areas:"prompts text";
+        }
+        .gen h2{ margin:0 0 10px; text-transform:uppercase }
+        .gen p{ margin:0; color:#444; max-width:48ch }
+
+        /* === Caja del generador con degradé circular animado === */
+        .prompts{
+          --ring-angle:0deg;
+          background:
+            linear-gradient(180deg,#16171a,#0f1012) padding-box,
+            conic-gradient(from var(--ring-angle), var(--accent), var(--accent2), var(--accent)) border-box;
+          border:10px solid transparent;
+          border-radius:var(--radius);
+          box-shadow:0 10px 34px rgba(231,13,12,.2), 0 0 0 6px rgba(24,200,221,.09) inset;
+          color:var(--ink);
+          padding:18px;
+          padding-block:clamp(20px, 3.2vw, 40px);
+          background-size:100% 100%;
+          background-position:center;
+          animation:promptsBorderSpin 2s linear infinite;
+          position:relative;
+        }
+        .prompt-loader{
+          position:absolute;
+          inset:0;
+          display:grid;
+          place-items:center;
+          background:rgba(0,0,0,.55);
+          border-radius:var(--radius);
+          z-index:5;
+          pointer-events:auto;
+        }
+        .prompt-loader-inner{
+          display:grid;
+          justify-items:center;
+          gap:8px;
+          padding:8px;
+          border-radius:12px;
+          background:rgba(0,0,0,.35);
+          backdrop-filter:blur(4px);
+          -webkit-backdrop-filter:blur(4px);
+        }
+        .prompt-loader-label{
+          color:#fff;
+          font-weight:800;
+          letter-spacing:.3px;
+        }
+        .sprite-bombilla{
+          --frames:8;
+          --w:140px;
+          --h:140px;
+          --dur:.9s;
+          width:var(--w);
+          height:var(--h);
+          background:url("/loader/bombilla-sprite.png") 0 0 no-repeat;
+          background-size:calc(var(--w) * var(--frames)) var(--h);
+          animation:bombilla-steps var(--dur) steps(var(--frames)) infinite;
+          image-rendering:auto;
+        }
+        @keyframes bombilla-steps{
+          to{ background-position-x:calc(-1 * var(--w) * var(--frames)); }
+        }
+        @media (prefers-reduced-motion: reduce){
+          .sprite-bombilla{ animation:none; }
+        }
+        @property --ring-angle{
+          syntax:"<angle>";
+          inherits:false;
+          initial-value:0deg;
+        }
+        @keyframes promptsBorderSpin{
+          to{ --ring-angle:1turn; }
+        }
+        @media (prefers-reduced-motion: reduce){
+          .prompts{
+            animation:none;
+            --ring-angle:0deg;
+          }
+        }
+        label{ display:block; margin:6px 0 8px; color:#d0d0d7; font-size:.95rem }
+        textarea{
+          width:100%; min-height:130px; resize:vertical; border-radius:12px;
+          border:1px solid #363841; padding:12px; background:#0c0d0f; color:#f6f6f7;
+          font:inherit;
+        }
+        .actions{ display:flex; gap:10px; margin-top:12px; align-items:center; flex-wrap:wrap }
+        button{
+          appearance:none; border:0; border-radius:12px; padding:12px 16px;
+          font-weight:800; letter-spacing:.4px; color:#fff;
+          background:linear-gradient(90deg,var(--accent),#f45a58);
+          box-shadow:0 10px 28px rgba(231,13,12,.28); cursor:pointer;
+        }
+        button.secondary{
+          background:#1a1b1f; color:#f0f0f0; border:1px solid #2a2b31; box-shadow:none;
+        }
+        button:disabled{ filter:grayscale(1); opacity:.6; cursor:not-allowed }
+        #status{ color:#c8c8cf; font-size:.95rem }
+
+        /* === Teleprompter banner (tileado) === */
+        .teleprompter{
+          position:relative;
+          height:var(--tele-h);
+          /* el PNG se repite horizontalmente y se ajusta a la altura del banner */
+          background:
+            var(--tele-bg)
+            url("/teleprompter.png") repeat-x 0 50% / auto var(--tele-h);
+          border-block:1px solid var(--stroke);
+          margin:clamp(8px, 1.6vw, 16px) 0;
+          animation:tele-scroll var(--tele-speed) linear infinite;
+          overflow:hidden;
+        }
+
+        /* Fades laterales (queda pro y disimula un poco la juntura aunque tilee) */
+        .teleprompter::before,
+        .teleprompter::after{
+          content:"";
+          position:absolute; top:0; bottom:0; width:40px;
+          background:linear-gradient(to right, var(--tele-bg), transparent);
+          pointer-events:none;
+        }
+        .teleprompter::after{
+          right:0; left:auto; transform:scaleX(-1);
+        }
+
+        @keyframes tele-scroll{
+          to{ background-position-x:-100%; }
+        }
+
+        @media (prefers-reduced-motion: reduce){
+          .teleprompter{ animation:none; }
+        }
+
+        /* Aire alrededor del generador + ticker */
+        .container.gen{
+          margin-top:clamp(28px, 6vh, 90px);
+          margin-bottom:0;
+        }
+        .ticker{ margin-top:clamp(8px, 1.6vw, 20px); margin-bottom:clamp(16px, 4vh, 48px) }
+
+        /* Botón “Ver” (cian) */
+        .btn{
+          display:inline-flex; align-items:center; gap:8px;
+          min-height:40px;
+          padding:10px 16px;
+          border-radius:12px; border:1px solid transparent;
+          font-weight:800; letter-spacing:.2px; text-decoration:none;
+          cursor:pointer; user-select:none;
+          transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease, color .15s ease;
+        }
+        .btn svg{ width:18px; height:18px; flex:0 0 auto }
+        .btn-download{
+          background:#f7f7fa; border-color:#dcdce3; color:#111;
+          box-shadow:0 6px 18px rgba(0,0,0,.08);
+        }
+        .btn-download-icon{
+          width:32px;
+          height:auto;
+          display:block;
+        }
+        .btn-download.icon-stack{
+          flex-direction:column;
+          align-items:center;
+          justify-content:center;
+          gap:8px;
+          text-align:center;
+          min-width:140px;
+        }
+        .recetario-intro .btn-download{
+          align-self:center;
+          position:relative;
+          z-index:0;
+          background:#fff;
+          /* borde levemente más grueso */
+          border:2px solid #0f0f10;
+        }
+        .recetario-intro .btn-download::before{
+          content:"";
+          position:absolute;
+          inset:0;
+          border-radius:inherit;
+          background:#fff;
+          z-index:-1;
+          transition:background-color .18s ease;
+        }
+        .recetario-intro .btn-download::after{
+          content:"";
+          position:absolute;
+          inset:calc(-1 * var(--nav-glow-spread, 5px));
+          border-radius:inherit;
+          padding:var(--nav-glow-thickness, 8px);
+          background:linear-gradient(120deg, var(--accent), var(--accent2));
+          -webkit-mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite:xor;
+          mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite:exclude;
+          filter:blur(var(--nav-glow-blur, 7px)) saturate(1.06);
+          opacity:0;
+          transform:scale(1.01);
+          z-index:-1;
+          pointer-events:none;
+          transition:opacity .16s ease, transform .16s ease, filter .16s ease;
+        }
+        .btn-download:hover{
+          background:#ffffff; border-color:#cfcfda; transform:translateY(-1px);
+          box-shadow:0 10px 26px rgba(0,0,0,.12);
+        }
+        .btn-download:active{ transform:translateY(0); box-shadow:0 6px 18px rgba(0,0,0,.10) inset }
+        .btn-download:focus-visible{ outline:2px solid #8ed1ff; outline-offset:2px }
+
+        .btn-view{
+          background:linear-gradient(90deg, var(--accent2), #6eeaf3);
+          border-color:rgba(24,200,221,.55);
+          color:#0b0c0f;
+          box-shadow:0 6px 18px rgba(24,200,221,.22);
+        }
+        .btn-view:hover{
+          transform:translateY(-1px);
+          filter:saturate(1.05);
+          box-shadow:0 10px 26px rgba(24,200,221,.28);
+        }
+        .btn-view:active{ transform:translateY(0); box-shadow:0 6px 18px rgba(24,200,221,.18) inset }
+        .btn-view:focus-visible{ outline:2px solid #8ed1ff; outline-offset:2px }
+
+        .recetario-intro .btn-download:hover,
+        .recetario-intro .btn-download:focus-visible{
+          background:#fff;
+          color:#0f0f10;
+          /* conservamos grosor de 2px también en hover/focus */
+          border:2px solid #0f0f10;
+          transform:translateY(-1px) scale(1.02);
+        }
+        .recetario-intro .btn-download:hover::before,
+        .recetario-intro .btn-download:focus-visible::before{
+          background:#fff;
+        }
+        .recetario-intro .btn-download:hover::after,
+        .recetario-intro .btn-download:focus-visible::after{
+          opacity:1;
+          transform:scale(1.03);
+          filter:blur(calc(var(--nav-glow-blur, 7px) * 1.1)) saturate(1.12);
+        }
+
+        .is-disabled{ opacity:.55; filter:grayscale(.3); pointer-events:none }
+
+        /* =========================
+           7) Ticker
+           ========================= */
+        .ticker{
+          position:relative; overflow:hidden; white-space:nowrap;
+          border-block:1px solid var(--stroke); background:#101010;
+        }
+        .ticker .track{
+          display:inline-block; white-space:nowrap; padding:10px 0;
+          font-weight:900; color:#fff; text-transform:uppercase;
+          text-shadow:-1px 0 var(--accent2), 1px 0 var(--accent);
+          will-change:transform;
+          animation:ticker-move 600s linear infinite;
+        }
+        .ticker:hover .track{ animation-play-state:paused }
+        @keyframes ticker-move{ to{ transform:translateX(-50%) } }
+        .ticker-idea{
+          display:inline-flex; align-items:center; justify-content:center;
+          border:1px solid transparent;
+          background:
+            linear-gradient(#101010,#101010) padding-box,
+            linear-gradient(120deg,var(--accent),var(--accent2)) border-box;
+          color:#fff; font:inherit; font-weight:700; text-transform:inherit;
+          border-radius:999px;
+          padding:.4rem .95rem;
+          margin:0 .45rem;
+          cursor:pointer; white-space:nowrap;
+          box-shadow:0 0 0 0 transparent;
+          transition:color .2s ease, box-shadow .2s ease, transform .2s ease;
+        }
+        .ticker-idea:hover{
+          color:var(--accent2);
+          box-shadow:0 0 14px rgba(24,200,221,.18);
+          transform:translateY(-1px);
+        }
+        .ticker-idea:active{
+          transform:translateY(0);
+          box-shadow:0 0 6px rgba(24,200,221,.22) inset;
+        }
+        .ticker-idea:focus-visible{
+          outline:2px solid #ffe066;
+          outline-offset:4px;
+        }
+
+        /* =========================
+           8) Bloques varios
+           ========================= */
+        .section{ border-top:1px solid var(--stroke); padding-top:18px }
+
+        /* === Footer (banda gris con logos) === */
+        .site-footer{
+          background:var(--footer-bg);
+          border-top:1px solid var(--footer-border);
+          color:var(--footer-ink);
+          padding:0;
+        }
+        .site-footer .container{
+          padding-block:var(--footer-pad);
+        }
+        .site-footer .footer-inner{
+          display:grid;
+          grid-template-columns:auto 1fr;
+          align-items:center;
+          gap:16px;
+          padding-block:var(--footer-pad);
+        }
+        .footer-credits{
+          font-size:.95rem;
+          opacity:.85;
+          margin:0;
+          white-space:nowrap;
+        }
+        .footer-logos{
+          list-style:none;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap:40px;
+          margin:0;
+          padding:0;
+          flex:0 0 auto;
+          max-width:760px;
+          width:auto;
+          flex-wrap:wrap;
+        }
+        .footer-logos li{ display:flex; align-items:center }
+        .footer-logos img{
+          display:block;
+          width:auto;
+          height:var(--footer-logo-h);
+        }
+        .footer-logos img[data-logo="perro"]{
+          height:calc(var(--footer-logo-h) * 1.9);
+        }
+        .footer-logos img.is-center{ height:calc(var(--footer-logo-h) * .95); }
+        .footer-logos img[alt="Toxi"]{
+          height:calc(var(--footer-logo-h) * .55);
+        }
+        @media (max-width:640px){
+          .site-footer .footer-inner{
+            display:flex;
+            flex-direction:column;
+            gap:24px;
+            text-align:center;
+          }
+          .footer-logos{
+            order:-1;
+            gap:36px;
+            justify-content:center;
+            max-width:none;
+          }
+        }
+
+        /* Mural compartido para Manifiesto + Obras */
+        .mural{
+          --mural-top:-20px;
+          --mural-bottom:-40px;
+          --mural-pos:50% 0;
+          position:relative;
+          z-index:0;
+          overflow:visible;
+        }
+        .mural::before{
+          content:"";
+          position:absolute;
+          left:50%;
+          transform:translateX(-50%);
+          top:var(--mural-top);
+          bottom:var(--mural-bottom);
+          width:var(--mural-width);
+          z-index:-1;
+          pointer-events:none;
+          background:var(--mural-img) no-repeat var(--mural-pos)/contain;
+          opacity:var(--mural-opacity);
+        }
+        #manifiesto.section,
+        #obras.section{ border-top-color:transparent }
+
+        .videos{
+          display:grid; gap:18px; grid-template-columns:repeat(3,1fr); margin-top:16px;
+          margin-bottom: clamp(32px, 9vh, 160px);
+
+        }
+        .videos video{
+          width:100%; aspect-ratio:16/9; height:auto; display:block;
+          border-radius:var(--radius); border:1px solid var(--stroke);
+          background:#000; object-fit:cover;
+        }
+        .vid-cap{
+          color:#0b0c0f;
+          font-size:.9rem;
+          margin-top:6px;
+          font-weight:600;
+        }
+
+        .bio-grid{
+          display:grid; gap:18px; grid-template-columns:repeat(3,1fr); margin-top:12px;
+        }
+        .bio{
+          position:relative;
+          z-index:0;
+          isolation:isolate;
+          border:1px solid #2a2b31;
+          border-radius:12px;
+          padding:14px;
+          color:#f6f6f7;
+          background:transparent;
+          transition:
+            transform .18s cubic-bezier(.2,.8,.2,1),
+            box-shadow .18s cubic-bezier(.2,.8,.2,1),
+            color .12s linear,
+            border-color .18s linear;
+          will-change:transform, box-shadow;
+        }
+        .bio::before{
+          content:"";
+          position:absolute;
+          inset:0;
+          border-radius:inherit;
+          background:linear-gradient(180deg,#16171a,#0f1012);
+          transition:background .18s linear, opacity .18s linear;
+          z-index:-1;
+        }
+        .bio::after{
+          content:"";
+          position:absolute;
+          inset:-10px;
+          border-radius:14px;
+          background:linear-gradient(120deg, var(--accent), var(--accent2));
+          filter:blur(20px) saturate(1.1);
+          opacity:0;
+          transform:scale(.98);
+          transition:
+            opacity .18s ease,
+            transform .18s ease,
+            filter .18s ease;
+          z-index:-2;
+          pointer-events:none;
+        }
+        .bio p{ margin:.25rem 0; color:#c8c8cf }
+
+        .bio:hover{
+          transform:translateY(-2px) scale(1.02);
+          z-index:1;
+          border-color:#fff;
+          color:#0f0f10;
+          box-shadow:0 16px 36px rgba(0,0,0,.14);
+        }
+        .bio:hover::before{
+          background:#fff;
+        }
+        .bio:hover::after{
+          opacity:1;
+          transform:scale(1.03);
+          filter:blur(24px) saturate(1.15);
+        }
+
+        .bio:hover h3,
+        .bio:hover p,
+        .bio:hover strong{ color:#0f0f10; }
+
+        @media (prefers-reduced-motion: reduce){
+          .bio{
+            transition:background .18s linear, color .12s linear, border-color .18s linear;
+          }
+          .bio:hover{ transform:none; }
+          .bio::after{
+            transition:opacity .18s ease, filter .18s ease;
+          }
+          header.navbar .site-nav a{
+            transition:background-color .18s ease, color .18s ease, border-color .18s ease;
+          }
+          header.navbar .site-nav a:hover,
+          header.navbar .site-nav a:focus-visible{ transform:none; }
+          header.navbar .site-nav a::after{ transition:opacity .18s ease, filter .18s ease; }
+        }
+
+        .recetario-card{
+          /* Sin recuadro gris ni sombra */
+          border:none;
+          background:transparent;
+          box-shadow:none;
+
+          /* Conservamos el layout/espaciado y el radio */
+          border-radius:20px;
+          padding:clamp(18px, 3.2vw, 32px);
+        }
+        .recetario-card h2{
+          color:#0f0f10; /* negro del sistema */
+        }
+        .recetario-intro{
+          display:flex;
+          align-items:flex-start;
+          justify-content:flex-start;
+          gap:clamp(16px, 4vw, 96px);
+          margin-top:6px;
+          flex-wrap:wrap;
+        }
+        .recetario-intro-text{
+          flex:1 1 260px;
+          max-width:var(--lead-max);
+        }
+        .recetario-cta{
+          flex:0 0 auto;
+          display:flex;
+          flex-direction:column;
+          align-items:center;
+          gap:12px;
+          margin-left:clamp(240px, 10vw, 400px);
+          margin-top:-30px;
+        }
+        .qti-icon-big{
+          display:block;
+          width:auto;
+          height:clamp(90px, 11vw, 200px);
+          margin:0;
+          filter:drop-shadow(0 2px 6px rgba(0,0,0,.25));
+          pointer-events:none;
+        }
+        @media (max-width: 768px){
+          .recetario-cta{
+            margin-left:0;
+            align-items:center;
+          }
+          .qti-icon-big{
+            margin:0 auto;
+          }
+        }
+        .recetario-copy{
+          font-family:var(--copy-font);
+          color:#0f0f10;          /* negro */
+          font-weight:var(--lead-weight);
+          font-size:var(--lead-size);
+          line-height:var(--lead-lh);
+          max-width:var(--lead-max);
+          margin:0;
+        }
+        #recetario{
+          color:#0f0f10; /* color por defecto de la sección */
+        }
+        .pill{ border:1px dashed #3a3a40; border-radius:999px; padding:.25rem .6rem; font-size:.85rem }
+
+        footer{ color:#9a9aa1; font-size:.9rem; padding:24px 0 40px }
+
+        /* =========================
+           9) Modal de resultado
+           ========================= */
+        .sr-only{
+          position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
+          overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+        }
+        .modal{
+          position:fixed; inset:0; display:none;
+          align-items:center; justify-content:center;
+          background:rgba(0,0,0,.6); z-index:10000;
+        }
+        .modal[open]{ display:flex }
+        .modal-dialog{
+          position:relative; background:#0f0f10; border:1px solid #2a2b31; border-radius:16px;
+          max-width:min(92vw,980px); max-height:88vh; padding:12px;
+          box-shadow:0 20px 70px rgba(0,0,0,.45);
+        }
+        .modal-content img{
+          display:block; width:100%; max-height:72vh; height:auto;
+          border-radius:12px; box-shadow:0 14px 40px rgba(0,0,0,.4);
+        }
+        .modal-tools{ display:flex; justify-content:flex-end; gap:10px; margin-top:10px }
+
+        .modal-close{
+          position:absolute; top:10px; right:10px;
+          width:32px; height:32px; border-radius:999px;
+          display:grid; place-items:center;
+          border:1px solid rgba(0,0,0,.12);
+          background:rgba(255,255,255,.75);
+          color:#111; cursor:pointer;
+          box-shadow:0 6px 22px rgba(0,0,0,.18);
+          backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+          transition: transform .15s ease, background-color .15s ease, box-shadow .15s ease, border-color .15s ease, color .15s ease;
+          padding:0; line-height:0;
+        }
+        .modal-close svg{ width:16px; height:16px; display:block }
+        .modal-close:hover{ background:#fff; border-color:rgba(0,0,0,.18); transform:translateY(-1px) }
+        .modal-close:active{ transform:translateY(0) }
+        .modal-close:focus-visible{ outline:2px solid #8ed1ff; outline-offset:2px }
+
+        /* =========================
+           10) Utilidades / títulos con gradiente
+           ========================= */
+        .title-gradient{
+          background:linear-gradient(90deg, var(--accent), var(--accent2));
+          -webkit-background-clip:text; background-clip:text;
+          color:transparent; -webkit-text-fill-color:transparent;
+          text-shadow:.02em .02em rgba(0,0,0,.08);
+        }
+        @supports not (-webkit-background-clip: text){
+          .title-gradient{ color:var(--accent); text-shadow:none }
+        }
+
+        /* =========================
+           11) Responsive
+           ========================= */
+        /* ≤960px: pilas únicas, nav compacto, hamburguesa, etc. */
+        @media (max-width:960px){
+          /* Navbar: layout y controles */
+          .nav-inner{
+            grid-template-columns:1fr auto 1fr;
+            gap:8px;
+          }
+          .site-nav{ gap:6px }
+          .site-nav.left, .site-nav.right{
+            overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+          }
+          .site-nav.left::-webkit-scrollbar,
+          .site-nav.right::-webkit-scrollbar{ display:none }
+          .site-nav a{ height:36px; padding:0 10px; font-size:14px }
+
+          /* Ocultar navs, mostrar hamburguesa y drawer */
+          .site-nav.left, .site-nav.right{ display:none }
+          .menu-toggle{ display:flex }
+
+          /* Logo arranca grande y achica al scrollear (mobile) */
+          .logo-img{ height:var(--logo-big) }
+          header.navbar.is-compact .logo-img{ height:var(--logo-small) }
+
+          /* Grillas a una columna donde corresponde */
+          .choose-grid, .gen-grid{ grid-template-columns:1fr }
+          #options{ justify-self:stretch; width:auto; max-width:100% }
+          .options{ grid-template-columns:1fr 1fr }
+          .videos{ grid-template-columns:1fr }
+          .bio-grid{ grid-template-columns:1fr }
+
+          /* Orden lógico del generador */
+          .gen-grid,
+          .gen-grid.flip{
+            grid-template-columns:1fr;
+            grid-template-areas:
+              "text"
+              "prompts";
+          }
+
+          /* Frida NO fuerza spans en mobile */
+          .options .card[data-artwork="frida_kahlo"]{
+            grid-column:auto; grid-row:auto;
+          }
+
+          /* Ocultar UI de barras de scroll móviles (sin romper scroll) */
+          html, body{
+            -ms-overflow-style:none; /* IE/Edge viejo */
+            scrollbar-width:none;    /* Firefox */
+          }
+          html::-webkit-scrollbar,
+          body::-webkit-scrollbar{ display:none }
+
+          header.navbar .nav-inner > a.logo-link{
+            justify-self:center;
+            transition:transform .25s ease;
+            transform:translateX(var(--logo-shift, 0px));
+          }
+          header.navbar .logo-link{
+            grid-column:2;
+            justify-self:center;
+            transform:none !important;
+          }
+          header.navbar.is-compact .nav-inner{
+            grid-template-columns:1fr auto 1fr;
+          }
+          header.navbar.is-compact .logo-link{
+            grid-column:2;
+            justify-self:center;
+          }
+        }
+
+        /* ≤640px: una sola columna en obras; tip ui más compacta */
+        @media (max-width:640px){
+          .options{ grid-template-columns:1fr }
+          header.navbar .site-nav a{ height:34px; padding:0 8px; font-size:13px }
+          .pdf-box iframe{ height:360px }
+        }
+        @media (max-width:640px){
+          :root{
+            --footer-logo-h:53px;
+            --footer-pad:8px;
+          }
+        }
+
+
+          /* CTA del drawer (igual al CTA de desktop) */
+          .mobile-drawer .mobile-menu a.cta{
+            position:relative;
+            z-index:0;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            width:100%;
+            height:42px;
+            padding:0 16px;
+            border-radius:12px;
+            border:2px solid #0f0f10;
+          margin-top:-6px;
+          margin-left:-6px;
+            background:#0f0f10;
+            color:#fff;
+            font-weight:800;
+            letter-spacing:.02em;
+            transition:
+              background-color .2s ease,
+              color .2s ease,
+              border-color .2s ease,
+              box-shadow .2s ease,
+              transform .2s ease;
+          }
+          .mobile-drawer .mobile-menu a.cta::before{
+            background:#0f0f10;
+            border-radius:inherit;
+          }
+          .mobile-drawer .mobile-menu a.cta::after{
+            content:"";
+            position:absolute;
+            inset:calc(-1 * var(--nav-glow-spread, 5px));
+            border-radius:inherit;
+            padding:var(--nav-glow-thickness, 8px);
+            background:linear-gradient(120deg, var(--accent), var(--accent2));
+            -webkit-mask:
+              linear-gradient(#000 0 0) content-box,
+              linear-gradient(#000 0 0);
+            -webkit-mask-composite:xor;
+            mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask-composite:exclude;
+            filter:blur(var(--nav-glow-blur, 7px)) saturate(1.06);
+            opacity:0;
+            transform:scale(1.01);
+            z-index:-2;
+            pointer-events:none;
+            transition:opacity .16s ease, transform .16s ease, filter .16s ease;
+          }
+          .mobile-drawer .mobile-menu a.cta:hover,
+          .mobile-drawer .mobile-menu a.cta:focus-visible,
+          .mobile-drawer .mobile-menu a.cta:active{
+            color:#0f0f10;
+            border-color:#0f0f10;
+            box-shadow:0 10px 26px rgba(0,0,0,.12);
+            transform:translateY(-1px) scale(1.02);
+            outline:0; /* usamos el borde como indicador */
+          }
+          .mobile-drawer .mobile-menu a.cta:hover::before,
+          .mobile-drawer .mobile-menu a.cta:focus-visible::before,
+          .mobile-drawer .mobile-menu a.cta:active::before{
+            background:#fff;
+          }
+          .mobile-drawer .mobile-menu a.cta:hover::after,
+          .mobile-drawer .mobile-menu a.cta:focus-visible::after,
+          .mobile-drawer .mobile-menu a.cta:active::after{
+            opacity:1;
+            transform:scale(1.03);
+            filter:blur(calc(var(--nav-glow-blur, 7px) * 1.1)) saturate(1.12);
+          }
+
+          /* Respeta usuarios con "reducir movimiento" */
+          @media (prefers-reduced-motion: reduce){
+            .mobile-drawer .mobile-menu a.cta{ transition:none; }
+          }
+
+          /* el img ya achica con .is-compact; sumamos suavidad */
+
+          .logo-img{
+            height: var(--logo-big);
+            width: auto;           /* ← mantiene proporción */
+            display: block;
+            transition: height .25s ease, transform .25s ease;
+          }
+          header.navbar.is-compact .logo-img{
+            height: var(--logo-small);
+          }
+
+          /* === Navbar: simetría en desktop (2+2 pegados al logo) === */
+          @media (min-width: 961px){
+            /* La grilla ya es 1fr | auto | 1fr; usamos el gap como “aire” junto al logo */
+            header.navbar .nav-inner{
+              display: grid;
+              grid-template-columns: 1fr auto 1fr;
+              align-items: center;
+              column-gap: clamp(16px, 3vw, 32px); /* ajustá este número si querés más/menos aire */
+              padding-inline: clamp(16px, 3vw, 28px);
+            }
+
+            /* Espejamos justificaciones: ambos grupos se apoyan hacia el logo */
+            .site-nav.left  { justify-content: flex-end; }
+            .site-nav.right { justify-content: flex-start; }
+
+            /* Un pelín de separación entre links */
+            .site-nav { gap: 10px; }
+          }
+
+          /* Asegura proporción del logo (ya lo tenías, lo dejo aquí por si algún build lo pisa) */
+          header.navbar .logo-img{
+            height: var(--logo-big);
+            width: auto;
+            display: block;
+            transition: height .25s ease, transform .25s ease;
+          }
+          header.navbar.is-compact .logo-img{ height: var(--logo-small); }
+
+        /* === NAV: aro degradé DETRÁS del pill + CTA negra sin marco raro === */
+        header.navbar{
+          --nav-glow-spread: 5px;
+          --nav-glow-thickness: 8px;
+          --nav-glow-blur: 7px;
+        }
+
+        header.navbar .site-nav a{
+          position: relative;
+          z-index: 0;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          height: 40px;
+          padding: 0 12px;
+          font-weight: 700;
+          text-decoration: none;
+          white-space: nowrap;
+          background: transparent;
+          border: 1px solid var(--stroke);
+          border-radius: 10px;
+          color: #0f0f10;
+          transition:
+            color .18s ease,
+            border-color .18s ease,
+            transform .18s ease;
+        }
+
+        header.navbar .site-nav a::before{
+          content:"";
+          position:absolute;
+          inset:0;
+          border-radius:inherit;
+          background:#fff;
+          z-index:-1;
+          transition: background-color .18s ease;
+        }
+
+        header.navbar .site-nav a::after{
+          content:"";
+          position:absolute;
+          inset: calc(-1 * var(--nav-glow-spread, 5px));
+          border-radius:inherit;
+          padding: var(--nav-glow-thickness, 8px);
+          background:linear-gradient(120deg, var(--accent), var(--accent2));
+          -webkit-mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite:xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite: exclude;
+          filter: blur(var(--nav-glow-blur, 7px)) saturate(1.06);
+          opacity: 0;
+          transform: scale(1.01);
+          z-index: -2;
+          pointer-events: none;
+          transition: opacity .16s ease, transform .16s ease, filter .16s ease;
+        }
+
+        header.navbar .site-nav a:hover,
+        header.navbar .site-nav a:focus-visible{
+          background: #0f0f10;
+          color: #fff;
+          border-color: #0f0f10;
+          transform: translateY(-1px) scale(1.02);
+        }
+        header.navbar .site-nav a:hover::before,
+        header.navbar .site-nav a:focus-visible::before{
+          background:#0f0f10;
+        }
+        header.navbar .site-nav a:hover::after,
+        header.navbar .site-nav a:focus-visible::after{
+          opacity: 1;
+          transform: scale(1.03);
+          filter: blur(calc(var(--nav-glow-blur, 7px) * 1.1)) saturate(1.12);
+        }
+
+        header.navbar .site-nav.left a.cta{
+          background: #0f0f10;
+          color: #fff;
+          border: 2px solid #0f0f10;
+          padding: 0 14px;
+          border-radius: 12px;
+        }
+        header.navbar .site-nav.left a.cta::before{
+          background:#0f0f10;
+        }
+        header.navbar .site-nav.left a.cta:hover,
+        header.navbar .site-nav.left a.cta:focus-visible{
+          background: #0f0f10;
+          color: #fff;
+          border-color: #0f0f10;
+          transform: translateY(-1px) scale(1.03);
+        }
+
+        /* === Full-bleed del HERO para evitar franja en Safari === */
+
+        /* 0) Nunca más scroll horizontal “fantasma” */
+        html, body { overflow-x: clip; } /* mejor que hidden para WebKit */
+
+        /* 1) El hero ocupa el ancho del viewport, centrado y fuera del grid del container */
+        .hero-slider{
+          position: relative;
+          left: 50%;
+          right: 50%;
+          margin-left: -50vw;
+          margin-right: -50vw;
+          width: 100vw;          /* ancho real del viewport */
+          max-width: 100vw;
+          contain: paint;        /* aisla pintura -> menos artefactos en WebKit */
+        }
+
+        /* 2) Pequeño “bleed” a la derecha sólo en Safari para tapar el 1px blanco */
+        @supports (-webkit-touch-callout: none){
+          .hero-slider{ margin-right: calc(-50vw - 1px); } /* añade 1px extra a ese lado */
+        }
+
+        /* 3) Aseguramos que el carrusel no meta overflow raro */
+        .hero-slider .slides,
+        .hero-slider .slide{
+          width: 100%;
+          max-width: 100%;
+        }
+        .hero-slider .slides{
+          scrollbar-gutter: stable both-edges; /* si el motor lo banca */
+        }
+
+        /* Oculta la barra de scroll sin quitar el scroll */
+        html::-webkit-scrollbar {
+          width: 0;
+          height: 0;
+        }
+        html {
+          scrollbar-width: none;         /* Firefox */
+          -ms-overflow-style: none;      /* IE/Edge viejo */
+        }
+
+        /* Título de la sección Generador */
+        #gen-title{
+          font-size: clamp(50px, 5.6vw, 50px); /* más grande y responsive */
+          line-height: 1.05;
+          letter-spacing: .02em;
+          margin-bottom: 12px;                  /* opcional: un pelín de aire */
+        }
+
+        /* Nudge fino del título “Elegí tu cuadro” hacia la izquierda */
+        #choose-title{
+          margin-inline-start: -15px; /* probá -2px / -4px según tu ojo */
+        }
+
+        /* Si en mobile se nota mucho, reducilo ahí */
+        @media (max-width:640px){
+          #choose-title{ margin-inline-start: -1px; }
+        }
+
+
+       /* Manifiesto: h2 en C64, chico, centrado y más ancho */
+      #manifiesto-title{
+        font-family: var(--title-font), monospace;
+        font-weight: 400;
+        color: #000;
+        font-size: clamp(22px, 2.0vw, 34px);
+        line-height: 1.3;
+        letter-spacing: 0.02em;
+        text-transform: none;
+        max-width: 110ch;
+        text-align: center;
+        margin: 8px auto clamp(28px, 4vw, 56px) !important;
+        -webkit-font-smoothing: none;
+        font-smooth: never;
+        text-rendering: optimizeSpeed;
+        padding-top: clamp(4px, 2vw, 10px);
+      }
+
+      /* Aire entre las fichas (#obras) y el recetario */
+      #obras{
+        margin-bottom: clamp(32px, 9vh, 160px);
+      }
+
+      /* Como #obras vive dentro de #mural, estiro el decorado del mural
+        para que cubra el nuevo espacio de aire */
+      #mural{
+        --mural-bottom: -100px; /* probá -200 / -280 según tu ojo */
+      }
+
+      /* === QTI: ajustar mural (bajar imagen y estirar coberturas) === */
+      #mural{
+        /* mueve la imagen hacia abajo (eje Y) */
+        --mural-pos: 50% 0px;
+
+        /* corre el inicio del lienzo un poco hacia abajo */
+        --mural-top: 20px;
+
+        /* cuelga más hacia abajo para cubrir el aire extra */
+        --mural-bottom: -240px;
+
+        z-index: 1;
+
+        /* opcional: un poco más de ancho si queda chica con 'contain' */
+        /* --mural-width: min(1600px, 120vw); */
+      }
+
+      /* Ajuste mobile: menos desplazamiento para no tapar texto */
+      @media (max-width:960px){
+        #mural{
+          --mural-pos: 50% 60px;
+          --mural-bottom: -180px;
+          --mural-top: 10px;
+          
+        }
+      }
+
+      /* === Fondo duplicado y recortado para Recetario === */
+      .recetario-mural{
+        position: relative;
+        z-index: 0;
+        /* Espacio extra para que el fondo respire */
+        /*padding-bottom: clamp(250px, 14vh, 500px);*/
+        padding-bottom: 80px;
+      }
+
+      .recetario-mural::before{
+        content: "";
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: -1;
+        pointer-events: none;
+
+        /* Usa las variables globales */
+        background: var(--mural-img) no-repeat;
+        opacity: var(--mural-opacity);
+
+        /* Mostrar mitad inferior del arte */
+        background-position: 50% 100%;
+        background-size: var(--mural-width) auto;
+
+        /* Lienzo del pseudo-elemento */
+        top: -280px;   /* Empieza un poco antes del recetario */
+        bottom: 0;
+        width: var(--mural-width);
+      }
+
+      /* Opcional: Eliminar el margen inferior original de #recetario
+         porque ahora lo maneja el padding del nuevo contenedor */
+      #recetario.section{
+        margin-bottom: 0;
+      }
+
+      /* Ajuste móvil opcional: menos desplazamiento e intensidad */
+      @media (max-width:960px){
+        .recetario-mural::before{
+          top: -80px;
+          opacity: 0.22;
+        }
+      }
+
+      .videos iframe {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        height: auto;
+        border-radius: var(--radius);
+        border-style: none; /* Importante para que no tenga bordes raros */
+}
+
+        </style>
+
+
+
+      </head>
+      <body>
+
+        <div id="top"></div>
+
+        <!-- NAVBAR -->
+        <header class="navbar" aria-label="Navegación principal">
+          <div class="nav-inner">
+            <nav class="site-nav left" aria-label="Secciones izquierda">
+              <a href="#options" class="cta">Jugá con las obras!</a>
+              <a href="#manifiesto">Videos + Manifiesto</a>
+            </nav>
+
+            <!-- Botón hamburguesa (solo mobile) -->
+            <button class="menu-toggle" aria-controls="mobile-drawer" aria-expanded="false" aria-label="Abrir menú">
+              <span aria-hidden="true"></span>
+            </button>
+
+            <a href="#top" class="logo-link">
+              <img src="/logo.png" alt="QTI — ¿Qué Te Imaginás?" class="logo-img" />
+            </a>
+
+            <nav class="site-nav right" aria-label="Secciones derecha">
+              <a href="#obras">Conocé a las obras</a>
+              <a href="#recetario">Recetario</a>
+            </nav>
+          </div>
+        </header>
+
+
+        <aside id="mobile-drawer" class="mobile-drawer" aria-hidden="true">
+          <div class="mobile-header">
+            <a href="#top" class="mobile-logo" aria-label="Ir al inicio">
+              <img src="/logo.png" alt="QTI — ¿Qué Te Imaginás?" />
+            </a>
+          </div>
+
+          <nav class="mobile-menu" aria-label="Menú principal">
+            <a href="#options" class="cta">Jugá con las obras!</a>
+            <a href="#manifiesto">Videos + Manifiesto</a>
+            <a href="#obras">Conocé a las obras</a>
+            <a href="#recetario">Recetario</a>
+          </nav>
+        </aside>
+        <div id="backdrop" class="backdrop" hidden></div>
+
+
+        <!-- HERO -->
+        <section class="hero-slider" aria-label="Presentación con carrusel">
+          <div class="slides">
+            <figure class="slide is-active"><img src="/hero/hero1.png" alt="Collage en la playa con mono y loro" /></figure>
+            <figure class="slide"><img src="/hero/hero2.png" alt="Detalle de obra con trazos intensos" /></figure>
+            <figure class="slide"><img src="/hero/hero3.png" alt="Escena surreal con cielo y figuras" /></figure>
+          </div>
+
+          <div class="hero-overlay">
+            <h1 class="hero-title">¿Qué te imaginás?</h1>
+            <p class="hero-sub">¡A crear e imaginar con las obras de arte y la IA!</p>
+            <div class="dots" role="tablist" aria-label="Diapositivas">
+              <button class="dot is-active" role="tab" aria-label="1"></button>
+              <button class="dot" role="tab" aria-label="2"></button>
+              <button class="dot" role="tab" aria-label="3"></button>
+            </div>
+          </div>
+
+        </section>
+
+
+        <section class="teleprompter" aria-hidden="true"></section>
+
+        <!-- SECCIÓN 1: Elegí tu cuadro -->
+        <section class="container choose" id="choose" aria-labelledby="choose-title">
+          <div class="choose-grid">
+            <div>
+              <h2 id="choose-title" class="title-gradient"><span>1- Elegí</span><span>tu cuadro</span></h2>
+              <p>La obra será una base para que puedas cambiar colores, agregar elementos, detalles,
+             hacer tu propia obra.
+      </p>
+            </div>
+
+            <section class="options" id="options" aria-label="Elegí una obra">
+              <article class="card" tabindex="0" data-artwork="torres_garcia" data-title="Joaquín Torres García" data-src="cuadro1.jpg">
+                <div class="card-media"><img src="cuadro1.jpg" alt="Obra de Joaquín Torres García"></div>
+                <div class="card-body"><span class="badge">Joaquín Torres García</span></div>
+              </article>
+              <article class="card portrait" tabindex="0" data-artwork="frida_kahlo" data-title="Frida Kahlo" data-src="cuadro2.jpg">
+                <div class="card-media"><img src="cuadro2.jpg" alt="Obra de Frida Kahlo"></div>
+                <div class="card-body"><span class="badge">Frida Kahlo</span></div>
+              </article>
+              <article class="card" tabindex="0" data-artwork="grete_stern" data-title="Grete Stern" data-src="cuadro3.jpg">
+                <div class="card-media"><img src="cuadro3.jpg" alt="Obra de Grete Stern"></div>
+                <div class="card-body"><span class="badge">Grete Stern</span></div>
+              </article>
+            </section>
+          </div>
+        </section>
+
+        <!-- SECCIÓN 2: Generador -->
+        <section class="container gen section" id="generador" aria-labelledby="gen-title">
+          <div class="gen-grid flip">
+            <div>
+              <h2 id="gen-title" class="title-gradient">2- PEDILE A LA IA LO QUE VAS A CREAR</h2>
+              <p>Escribí tus ideas o seleccioná alguna de la barra que está debajo.
+      De forma rápida la IA va a transformar la obra que elegiste, a partir de tus ideas.
+      Al terminar vas a poder ver el resultado en una ventana emergente y descargarla.
+      </p>
+            </div>
+
+            <div class="prompts">
+              <div id="prompt-loader" class="prompt-loader" hidden aria-hidden="true">
+                <div class="prompt-loader-inner">
+                  <div class="sprite-bombilla" role="img" aria-label="Generando..."></div>
+                  <div class="prompt-loader-label">Generando...</div>
+                </div>
+              </div>
+              <label for="prompt">Qué te imaginás? Escribí todo lo que querés incluir en tu cuadro.</label>
+              <textarea id="prompt" placeholder="Ej.: Convertilo en estilo cómic, agregá un mono con sombrero y dejá el fondo celeste y blanco."></textarea>
+              <div class="actions">
+                <button id="generate" disabled>Generar con IA</button>
+                <button class="secondary" id="clear">Limpiar</button>
+                <!-- NUEVO: botón Ver -->
+                <button id="view-result" class="btn btn-view is-disabled" type="button" hidden aria-disabled="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  <span>Ver</span>
+                </button>
+                <a id="download" class="btn btn-download is-disabled" download hidden aria-disabled="true">
+                   <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                     <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"
+                       fill="none" stroke="currentColor" stroke-width="2"
+                       stroke-linecap="round" stroke-linejoin="round"/>
+                   </svg>
+                   <span>Descargar</span>
+                 </a>
+                <span id="status" aria-live="polite" aria-atomic="true"></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TICKER -->
+        <div class="ticker" aria-hidden="true"><div class="track"></div></div>
+
+
+        <!-- MANIFIESTO + VIDEOS + OBRAS envueltos por el mural -->
+        <div id="mural" class="mural">
+          <section id="manifiesto" class="container section" aria-labelledby="manifiesto-title">
+            <h2 id="manifiesto-title" style="margin:0 0 8px">QTI? es un espacio para que las chicas y los chicos descubran a los artistas e imaginen nuevas versiones de sus obras de arte con creatividad.</h2>
+            <p style="max-width:70ch;color:#555">
+              
+            </p>
+            <div class="videos" aria-label="Videos">
+              <article>
+                <iframe src="https://player.vimeo.com/video/1131419916?h=d0b66106f1&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin"; title="QTI? FK WS"></iframe>
+                <div class="vid-cap">Frida Kahlo</div>
+              </article>
+              
+              <article>
+                <iframe src="https://player.vimeo.com/video/1131420921?h=73d322bb89&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin"; title="QTI? JTG WS"></iframe>
+                <div class="vid-cap">Joaquín Torres García</div>
+              </article>
+                
+              <article>
+                <iframe src="https://player.vimeo.com/video/1131420296?h=c20683d4e3&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin"; title="QTI? GS WS"></iframe>
+                <div class="vid-cap">Grete Stern</div>
+              </article>
+            </div>
+          </section>
+
+          <!-- OBRAS -->
+          <section id="obras" class="container section" aria-labelledby="obras-title">
+            <h2 id="obras-title" style="margin:0 0 8px;font-size:clamp(26px,3.4vw,44px)">Conocé a las obras y a sus artistas</h2>
+            <div class="bio-grid" aria-label="Autores y obras">
+              <article class="bio">
+                <h3>Frida Kahlo</h3>
+                <p>Fue una gran pintora mexicana que nació en 1907, exploró la identidad propia y su cuerpo con símbolos personales y colores intensos. Sus obras estuvieron muy vinculadas a los acontecimientos que marcaron su vida.</p>
+                <p><strong>Obra:</strong> Autorretrato con chango y loro</p>
+              </article>
+              <article class="bio">
+                <h3>Joaquín Torres García</h3>
+                <p>Fue un gran pintor uruguayo que nació en 1874, fue pintor, escultor, escritor y maestro.
+      Creó un movimiento muy importante el “Universalismo constructivo”, donde aparecen formas geométricas, planos, símbolos y colores. También se dedicó durante un tiempo a diseñar juguetes.</p>
+                <p><strong>Obra:</strong> Constructivo con calle y gran pez</p>
+              </article>
+              <article class="bio">
+                <h3>Grete Stern</h3>
+                <p>Fue una fotógrafa alemana, nacionalizada argentina que nació en 1904. Muchas de sus obras eran fotomontajes oníricos donde mezclaba la realidad y los sueños, con humor crítico. También en sus obras aparecían paisajes de nuestro país y retratos.</p>
+                <p><strong>Obra:</strong> Sueño N° 38</p>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <!-- RECETARIO -->
+        <div class="recetario-mural">
+          <section id="recetario" class="container section" aria-labelledby="recetario-title">
+            <div class="recetario-card">
+              <h2 id="recetario-title" style="margin:0 0 12px;font-size:clamp(26px,3.4vw,44px)">Recetario de PROMPTING</h2>
+              <div class="recetario-intro">
+                <div class="recetario-intro-text">
+                  <p class="recetario-copy">Lee el texto para aprender como promptear y poder crear imágenes. Vas a encontrar consejos y ejemplos para divertirte jugando con la IA</p>
+                </div>
+                <div class="recetario-cta">
+                  <img src="/qti-download.png" alt="" class="qti-icon-big" aria-hidden="true">
+                  <a class="btn btn-download" href="/docs/recetario.pdf" download>
+                    <span>Descargar PDF</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="site-footer" role="contentinfo">
+          <div class="container footer-inner">
+            <p class="footer-credits">© 2025 QTI — ¿Qué Te Imaginás?</p>
+            <ul class="footer-logos" aria-label="Logos de organizaciones">
+              <li>
+                <img data-logo="perro" src="/logos/perro.png" alt="Perro" loading="lazy" decoding="async">
+              </li>
+              <li>
+                <img class="is-center" src="/logos/escuelaplus.png" alt="EscuelaPlus" loading="lazy" decoding="async">
+              </li>
+              <li>
+                <img src="/logos/toxi.png" alt="Toxi" loading="lazy" decoding="async">
+              </li>
+            </ul>
+          </div>
+        </footer>
+
+        <!-- Modal de resultado -->
+        <div class="modal" id="result-modal" role="dialog" aria-modal="true" aria-labelledby="result-title">
+          <div class="modal-dialog">
+            <!-- CAMBIAR ESTE BOTÓN: -->
+            <button class="modal-close" id="modal-close" type="button" aria-label="Cerrar">
+              <!-- Ícono “X” en SVG -->
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 7 L17 17 M17 7 L7 17"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"/>
+              </svg>
+            </button>
+
+            <h2 id="result-title" class="sr-only">Resultado</h2>
+            <div class="modal-content">
+              <img id="modal-img" alt="Imagen generada" />
+              <div class="modal-tools">
+                <!-- CAMBIAR CLASES Y CONTENIDO DEL BOTÓN DE DESCARGA: -->
+                <a id="modal-download" class="btn btn-download" href="#" download>
+                  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span>Descargar</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- =========================
+             JS
+             ========================= -->
+        <script>
+          // 0) Si la URL trae #hash (p.ej. #options por recarga), lo removemos para que el browser no baje solo
+          (function killHashOnFirstLoad(){
+            if (location.hash) {
+              history.replaceState(null, '', location.pathname + location.search);
+            }
+          })();
+          // activar scroll suave recién cuando el layout está estable
+          window.addEventListener('load', () => {
+            document.documentElement.classList.add('smooth-scroll');
+          });
+
+          const $ = (s, el=document)=>el.querySelector(s);
+          const $$=(s,el=document)=>[...el.querySelectorAll(s)];
+
+          // Último resultado generado (para re-descargar desde la caja)
+          let lastResultUrl = null;
+
+          // URL blob actual (para revocarla y no filtrar memoria)
+          let lastObjectUrl = null;
+
+
+
+
+          /* ====== HERO: carrusel scrolleable ====== */
+          (function initHero(){
+            const hero   = document.querySelector('.hero-slider');
+            if(!hero) return;
+
+            const track  = hero.querySelector('.slides');
+            const slides = [...hero.querySelectorAll('.slide')];
+            const dots   = [...hero.querySelectorAll('.dot')];
+
+            let i = 0, autoId = null;
+
+            // Estado del scroll/drag
+            let isUserDragging = false;   // true mientras se arrastra
+            let isAnimating    = false;   // true durante scrollTo({behavior:'smooth'})
+            let scrollTO       = null;    // debounce de scroll
+
+            const supportsScrollEnd = 'onscrollend' in window;
+            let animTO = null; // timer para fallback de animación
+
+            const goTo = (n, { smooth = true, wrap = true } = {}) => {
+              if(!slides.length) return;
+              const max = slides.length - 1;
+              if (wrap) {
+                i = (n + slides.length) % slides.length;
+              } else {
+                i = Math.max(0, Math.min(max, n));
+              }
+              const x = i * track.clientWidth;
+
+              isAnimating = true;
+              track.scrollTo({ left: x, behavior: smooth ? 'smooth' : 'auto' });
+
+              // Fallback si el navegador no tiene 'scrollend'
+              if (!supportsScrollEnd) {
+                if (animTO) clearTimeout(animTO);
+                animTO = setTimeout(() => {
+                  isAnimating = false;
+                  const idx = Math.round(track.scrollLeft / track.clientWidth);
+                  if (idx !== i) i = idx;
+                  updateDots(i);
+                }, smooth ? 450 : 0); // ~450ms calza con 'smooth'
+              }
+            };
+
+
+
+            const updateDots = (idx)=> dots.forEach((d,k)=> d.classList.toggle('is-active', k===idx));
+
+            const start = ()=>{
+              if(autoId || !slides.length) return;
+              autoId = setInterval(()=> goTo(i+1), 4500);
+            };
+            const stop = ()=>{
+              if(autoId){ clearInterval(autoId); autoId = null; }
+            };
+
+            // Snap-awareness al scrollear (touch/wheel/drag) -> debounced
+            const readIndex = () => Math.round(track.scrollLeft / track.clientWidth);
+
+            // Fallback si el navegador no emite 'scrollend'
+            const onScroll = ()=>{
+              // no recalcular en bruto mientras se arrastra; esperamos a que “se asiente”
+              if (scrollTO) clearTimeout(scrollTO);
+              scrollTO = setTimeout(() => {
+                if (isAnimating) return;
+                const idx = readIndex();
+                if (idx !== i) { i = idx; updateDots(i); }
+              }, 100);
+       // 80–120ms va bien
+            };
+            track.addEventListener('scroll', onScroll, { passive:true });
+
+            // 'scrollend' moderno: cuando termina el smooth o el arrastre
+            if (supportsScrollEnd) {
+              track.addEventListener('scrollend', () => {
+                isAnimating = false;
+                const idx = readIndex();
+                if (idx !== i) { i = idx; }
+                updateDots(i);
+              });
+            }
+
+
+
+            dots.forEach((d, idx) => d.addEventListener('click', ()=>{
+              stop();
+              goTo(idx, { smooth: true }); // dots se actualizarán en scrollend/debounce
+              start();
+            }));
+
+
+            // Pausa al hover e interacción
+            hero.addEventListener('mouseenter', stop);
+            hero.addEventListener('mouseleave', start);
+
+            // ===== Drag con mouse / pointer =====
+            let dragging = false, startX = 0, startY = 0, startLeft = 0, moved = false;
+            let dragStartIdx = 0, dragStartTime = 0, totalMoved = 0;
+
+
+
+            const beginDrag = (x, y, pointerId, pointerType)=>{
+              isUserDragging = true;
+              dragging = true; moved = false;
+              startX = x;
+              startY = y;
+              startLeft = track.scrollLeft;
+              totalMoved = 0;
+              dragStartIdx = i;
+              dragStartTime = performance.now();
+              track.classList.add('is-dragging');
+              stop();
+              try{ if(pointerId!=null && track.setPointerCapture) track.setPointerCapture(pointerId); }catch{}
+            };
+
+
+
+            const doDrag = (x)=>{
+              if(!dragging) return;
+              const dx = x - startX;
+              // scroll en la dirección contraria al movimiento del puntero
+              track.scrollLeft = startLeft - dx;
+              totalMoved = track.scrollLeft - startLeft;
+              if(Math.abs(dx) > 3) moved = true;
+            };
+
+
+            const endDrag = (pointerId)=>{
+              if(!dragging) return;
+              dragging = false;
+              isUserDragging = false;                // ¿Y'^ NUEVO
+              try{ if(pointerId!=null && track.releasePointerCapture) track.releasePointerCapture(pointerId); }catch{}
+              track.classList.remove('is-dragging');
+
+              const slideW = track.clientWidth;
+              const movedX = totalMoved; // >0 avanza, <0 retrocede
+              const absDX  = Math.abs(movedX);
+              const dir    = movedX === 0 ? 0 : (movedX > 0 ? +1 : -1);
+
+              const threshold = Math.max(24, Math.min(slideW * 0.10, 120));
+              const elapsed   = performance.now() - dragStartTime;
+              const avgVel    = elapsed > 0 ? absDX / elapsed : 0;
+              const flick     = absDX > 12 && avgVel > 0.6;
+
+              let target = dragStartIdx;
+              if (dir !== 0 && (absDX >= threshold || flick)) {
+                target = dragStartIdx + dir;
+              }
+
+              // Scroll programático sin wrap manual; dots se actualizan en scrollend/debounce
+              goTo(target, { smooth: true, wrap: false });
+              totalMoved = 0;
+              start();
+            };
+
+
+
+            // Bloquear drag nativo de imagen/elemento
+            track.addEventListener('dragstart', (e)=> e.preventDefault());
+
+            // POINTER EVENTS (Chrome/Edge/Firefox/Safari modernos)
+            const onPointerMove = (e)=>{
+              // Sólo “tomamos” el gesto si es mayormente horizontal; si no, dejamos scrollear la página
+              const absDX = Math.abs(e.clientX - startX);
+              const absDY = Math.abs(e.clientY - startY);
+              const horizontalIntent = absDX > absDY * 1.15; // leve sesgo a horizontal
+
+              if (horizontalIntent) {
+                doDrag(e.clientX);
+                e.preventDefault(); // prevenimos sólo cuando arrastramos el carrusel
+              }
+            };
+            const onPointerUp   = (e)=>{
+              endDrag(e.pointerId);
+              track.removeEventListener('pointermove', onPointerMove);
+            };
+
+            track.addEventListener('pointerdown', (e)=>{
+              if (e.pointerType !== 'mouse') return; // touch/pen usan swipe nativo
+              if (e.button !== 0) return;            // solo botón principal
+              e.preventDefault();
+
+              beginDrag(e.clientX, e.clientY, e.pointerId, e.pointerType);
+              track.addEventListener('pointermove', onPointerMove, { passive:false });
+              track.addEventListener('pointerup',     onPointerUp, { passive:false, once:true });
+              track.addEventListener('pointercancel', onPointerUp, { passive:false, once:true });
+            });
+
+
+
+            // FALLBACK mouse: **sólo si NO hay PointerEvent**
+            if (!('PointerEvent' in window)) {
+              track.addEventListener('mousedown', (e)=>{
+                if(e.button !== 0) return;
+                e.preventDefault();
+                beginDrag(e.clientX, null);
+
+                const onMouseMove = (ev)=>{ doDrag(ev.clientX); ev.preventDefault(); };
+                const onMouseUp   = ()=>{ endDrag(null); document.removeEventListener('mousemove', onMouseMove); };
+
+                document.addEventListener('mousemove', onMouseMove, { passive:false });
+                document.addEventListener('mouseup', onMouseUp, { once:true });
+              });
+            }
+
+
+            // Evitar click fantasma tras un drag
+            track.addEventListener('click', (e)=>{ if(moved) e.preventDefault(); });
+
+
+            // Touch pausa/reanuda autoplay (sigue igual)
+            track.addEventListener('touchstart', stop, { passive:true });
+            track.addEventListener('touchend',   start, { passive:true });
+
+            // Mantener alineado el slide tras resize
+            window.addEventListener('resize', ()=> goTo(i));
+
+            // Arranque
+            updateDots(0);
+            goTo(0);
+            start();
+          })();
+
+
+          /* ====== Ticker: pista única ====== */
+          (function initTicker(){
+            const ideas = [
+              "Versión nocturna con luna llena","Convertilo en estilo cómic","Agregale anteojos al animal",
+              "Cambiá al animal por un cono de helado gigante","Cambialo para que estén en la playa",
+              "Pintalo como si fuera neón","Sumale un gato curioso en el hombro","Hacelo miniatura dentro de una botella",
+              "Clima de tormenta con relámpagos","Modo ciencia ficción: ciudad futurista","Todo de plastilina (stop motion)",
+              "Acuarela con bordes difusos","Papel recortado, sombras marcadas","Estilo afiche vintage de cine",
+              "Añadí globos que levanten la escena","Hielo y nieve: universo ártico","Submarino: peces alrededor",
+              "Sueño surreal con objetos volando","Pop art con puntitos y tramas","Sólo dos colores (duotono)"
+            ];
+            const esc = s=>String(s).replace(/[&<>"]/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+            const pistaBtns = ideas.map(t=>`<button type="button" class="ticker-idea" data-idea="${esc(t)}">✦ ${esc(t)}</button>`).join(" ");
+            const ticker = document.querySelector('.ticker .track');
+            if (!ticker) return;
+            const contenido = (pistaBtns + " ").repeat(12);
+            ticker.innerHTML = contenido + contenido;
+
+            document.querySelector('.ticker')?.addEventListener('click', (e)=>{
+              const btn = e.target.closest('.ticker-idea');
+              if (!btn) return;
+              const promptEl = document.getElementById('prompt');
+              if (!promptEl) return;
+              promptEl.value = btn.dataset.idea;
+              promptEl.focus();
+              maybeEnable();
+            });
+          })();
+
+          /* ====== Elegir obra (selección + highlight) ====== */
+          let selected = null; // usamos esta misma variable
+
+          const optionsEl = document.getElementById('options');
+
+          function selectCard(card){
+            // limpiar selección previa
+            $$('#options .card').forEach(c => {
+              c.classList.remove('selected');
+              c.setAttribute('aria-selected', 'false');
+            });
+            // marcar la nueva
+            card.classList.add('selected');
+            card.setAttribute('aria-selected', 'true');
+
+            // guardar datos para el generador
+            selected = {
+              id:    card.dataset.artwork,
+              title: card.dataset.title,
+              src:   card.dataset.src
+            };
+
+            // habilitar el botón si ya hay prompt
+            if (typeof maybeEnable === 'function') maybeEnable();
+          }
+
+          // click con mouse
+          optionsEl?.addEventListener('click', (e)=>{
+            const card = e.target.closest('.card');
+            if (!card || !optionsEl.contains(card)) return;
+            selectCard(card);
+          });
+
+          // teclado (Enter o Space)
+          optionsEl?.addEventListener('keydown', (e)=>{
+            const card = e.target.closest('.card');
+            if (!card) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              selectCard(card);
+            }
+          });
+
+
+
+          /* ====== Generador ====== */
+          const statusEl     = $('#status');
+          const promptEl     = $('#prompt');
+          const generateBtn  = $('#generate');
+          const downloadBtn  = $('#download');
+          const viewBtn      = $('#view-result');   // <--- VER
+          const promptsBox   = document.querySelector('.prompts');
+          const loaderOverlay= document.getElementById('prompt-loader');
+
+          // Evitar que descargue el HTML si todavía no hay resultado
+          downloadBtn?.addEventListener('click', (e)=>{
+            if(!lastResultUrl){ e.preventDefault(); }
+          });
+
+          // “Ver”: reabre el modal con el último resultado si existe
+          viewBtn?.addEventListener('click', ()=>{
+            if(!lastResultUrl) return;
+            openModalWithImage(lastResultUrl);
+          });
+
+          promptEl?.addEventListener('input', maybeEnable);
+          function showPromptLoader(){
+            if(!promptsBox || !loaderOverlay) return;
+            promptsBox.setAttribute('inert','');
+            promptsBox.setAttribute('aria-busy','true');
+            promptsBox.setAttribute('aria-disabled','true');
+            loaderOverlay.hidden = false;
+            loaderOverlay.setAttribute('aria-hidden','false');
+          }
+          function hidePromptLoader(){
+            if(!promptsBox || !loaderOverlay) return;
+            promptsBox.removeAttribute('inert');
+            promptsBox.removeAttribute('aria-busy');
+            promptsBox.removeAttribute('aria-disabled');
+            loaderOverlay.setAttribute('aria-hidden','true');
+            loaderOverlay.hidden = true;
+          }
+          function maybeEnable(){ if(generateBtn && promptEl) generateBtn.disabled = !(selected && promptEl.value.trim().length>0); }
+
+          const BACKEND_ORIGIN=window.location.origin;
+          const toAbsolute=(url)=>!url?url:/^https?:\/\//i.test(url)?url:BACKEND_ORIGIN.replace(/\/+$/,'')+'/'+url.replace(/^\/+/,'')
+
+         async function generate() {
+          if (!selected || !promptEl?.value.trim()) return;
+          generateBtn.disabled = true;
+          if (statusEl) statusEl.textContent = 'Generando...';
+
+          showPromptLoader();
+
+          try {
+            // ===================================================================
+            // PASO CLAVE 1: Leer la imagen base y convertirla a Base64
+            // Esto es como tomar el "documento real" para la fotocopiadora.
+            // ===================================================================
+            const sourceBlob = await fetch(selected.src).then(r => r.blob());
+            const base64 = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result.split(',')[1]);
+              reader.readAsDataURL(sourceBlob);
+            });
+
+            // 2) Pedir al backend la imagen generada, ahora SÍ con los datos de la imagen
+            const r = await fetch(`/api/generate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ imageBase64: base64, prompt: promptEl.value.trim() })
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+
+            // La respuesta (data.imageUrl) YA ES la imagen completa en formato data:URL.
+            const finalImageUrl = data.imageUrl;
+
+            if (lastObjectUrl) URL.revokeObjectURL(lastObjectUrl);
+
+            // Para los botones de descarga, convertimos el data:URL a un Blob URL.
+            const imageBlob = await (await fetch(finalImageUrl)).blob();
+            const objectUrl = URL.createObjectURL(imageBlob);
+            lastObjectUrl = objectUrl;
+            lastResultUrl = objectUrl; 
+
+            // 3) Abrir modal y preparar los botones de descarga
+            openModalWithImage(objectUrl);
+
+            if (downloadBtn) {
+              downloadBtn.href = objectUrl;
+              downloadBtn.setAttribute('download', 'qti.png');
+              downloadBtn.hidden = false;
+              downloadBtn.classList.remove('is-disabled');
+              downloadBtn.removeAttribute('aria-disabled');
+            }
+
+            if (viewBtn) {
+              viewBtn.hidden = false;
+              viewBtn.classList.remove('is-disabled');
+              viewBtn.removeAttribute('aria-disabled');
+            }
+
+            if (statusEl) statusEl.textContent = 'Listo ✨';
+
+          } catch (e) {
+            console.error(e);
+            if (statusEl) statusEl.textContent = 'Error: ' + e.message;
+          } finally {
+            hidePromptLoader();
+            if (generateBtn) generateBtn.disabled = false;
+          }
+        }
+
+          $('#generate')?.addEventListener('click', generate);
+          $('#clear')?.addEventListener('click', ()=>{
+            if (promptEl) promptEl.value = '';
+            if (statusEl) statusEl.textContent = '';
+            maybeEnable();
+
+            if (downloadBtn){
+              downloadBtn.hidden = true;
+              downloadBtn.classList.add('is-disabled');
+              downloadBtn.setAttribute('aria-disabled','true');
+              downloadBtn.removeAttribute('href');
+            }
+
+            if (viewBtn){
+              viewBtn.hidden = true;
+              viewBtn.classList.add('is-disabled');
+              viewBtn.setAttribute('aria-disabled','true');
+            }
+
+
+            if (lastObjectUrl) {
+              URL.revokeObjectURL(lastObjectUrl);
+              lastObjectUrl = null;
+            }
+            lastResultUrl = null;
+          });
+
+          /* ====== Modal de resultado ====== */
+          const modal         = document.getElementById('result-modal');
+          let   modalImg      = document.getElementById('modal-img');
+          const modalClose    = document.getElementById('modal-close');
+          const modalDownload = document.getElementById('modal-download');
+
+          function openModalWithImage(src){
+            if(!modal) return;
+
+            // Pre-cargar la imagen nueva y swappear sólo cuando esté lista
+            const nextImg = new Image();
+            nextImg.id = 'modal-img';
+            nextImg.alt = 'Imagen generada';
+            nextImg.style.display = 'block';
+            nextImg.style.width = '100%';
+            nextImg.style.maxHeight = '72vh';
+            nextImg.style.borderRadius = '12px';
+
+            nextImg.onload = ()=>{
+              // Reemplaza el <img> actual por el nuevo (sin parpadeos ni “imagen anterior”)
+              modalImg.replaceWith(nextImg);
+              modalImg = nextImg;
+            };
+            nextImg.src = src;
+
+            // Abrir modal y actualizar botón de descarga
+            modal.setAttribute('open','');
+            document.body.style.overflow = 'hidden';
+            modalDownload.href = src;
+            modalDownload.setAttribute('download','qti.png');
+            modalClose?.focus();
+          }
+
+          function closeModal(){
+            if(!modal) return;
+            modal.removeAttribute('open');
+            document.body.style.overflow = '';
+
+            // Opcional: limpiar href de descarga para evitar que quede apuntando a una URL vieja
+            // (si usás objectURL esto no es crítico, pero ayuda a mantener el estado claro)
+            modalDownload.removeAttribute('href');
+
+            // Devuelvo el foco a “Generar” si existe (buena práctica de accesibilidad)
+            const generateBtn = document.getElementById('generate');
+            generateBtn?.focus();
+          }
+
+          // Listeners que faltaban
+          modalClose?.addEventListener('click', closeModal);
+          modal?.addEventListener('click', (e)=>{ if (e.target === modal) closeModal(); });
+          window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && modal?.hasAttribute('open')) closeModal(); });
+
+
+        </script>
+
+
+        <!-- script aparte: header offset + shrink + drawer -->
+        <script>
+          // 1) Medir header y exponer variables para padding/anchors
+          (function headerOffset(){
+            const root = document.documentElement;
+            const nav  = document.querySelector('header.navbar');
+            if(!nav) return;
+            const set = ()=>{
+              const h = nav.getBoundingClientRect().height;
+              root.style.setProperty('--header-offset', `${h}px`);
+              root.style.setProperty('--anchor-offset', `${h}px`);
+            };
+            new ResizeObserver(set).observe(nav);
+            window.addEventListener('load', set);
+            window.addEventListener('resize', set);
+            set();
+          })();
+
+          // 2) Shrink on scroll (logo y alto del header)
+          (function headerShrink(){
+            const nav = document.querySelector('header.navbar');
+            if(!nav) return;
+            const onscroll = ()=> nav.classList.toggle('is-compact', window.scrollY > 40);
+            window.addEventListener('scroll', onscroll, { passive:true });
+            onscroll();
+          })();
+
+
+          // 3) Drawer mobile
+          (function mobileMenu(){
+            const btn = document.querySelector('.menu-toggle');
+            const drawer = document.getElementById('mobile-drawer');
+            const backdrop = document.getElementById('backdrop');
+            if(!btn || !drawer || !backdrop) return;
+
+            const open = () => {
+              btn.setAttribute('aria-expanded','true');
+              drawer.classList.add('is-open');
+              backdrop.classList.add('is-open');
+              backdrop.hidden = false;
+              document.body.style.overflow = 'hidden';
+            };
+            const close = () => {
+              btn.setAttribute('aria-expanded','false');
+              drawer.classList.remove('is-open');
+              backdrop.classList.remove('is-open');
+              setTimeout(()=>{ backdrop.hidden = true; }, 200);
+              document.body.style.overflow = '';
+            };
+
+            btn.addEventListener('click', () => drawer.classList.contains('is-open') ? close() : open());
+            backdrop.addEventListener('click', close);
+            drawer.addEventListener('click', (e)=>{ if (e.target.closest('a')) close(); });
+            window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') close(); });
+          })();
+        </script>
+
+        <script src="https://player.vimeo.com/api/player.js"></script>
+
+      </body>
+      </html>
