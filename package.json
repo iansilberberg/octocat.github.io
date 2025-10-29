@@ -9,6 +9,6 @@
     "@google/genai": "^0.3.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "serverless-http": "^3.2.0"  // <-- NETLIFY
+    "serverless-http": "^3.2.0"
   }
 }
