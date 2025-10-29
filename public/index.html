@@ -2295,30 +2295,39 @@
           showPromptLoader();
 
           try {
-            // 1) Pedir al backend la imagen generada
-            const r = await fetch(`/api/generate`, { // Ya no necesitamos BACKEND_ORIGIN, es más simple así
+            // ===================================================================
+            // PASO CLAVE 1: Leer la imagen base y convertirla a Base64
+            // Esto es como tomar el "documento real" para la fotocopiadora.
+            // ===================================================================
+            const sourceBlob = await fetch(selected.src).then(r => r.blob());
+            const base64 = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result.split(',')[1]);
+              reader.readAsDataURL(sourceBlob);
+            });
+
+            // 2) Pedir al backend la imagen generada, ahora SÍ con los datos de la imagen
+            const r = await fetch(`/api/generate`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ imageBase64: selected.src, prompt: promptEl.value.trim() })
+              body: JSON.stringify({ imageBase64: base64, prompt: promptEl.value.trim() })
             });
             const data = await r.json();
             if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
 
-            // === LA CORRECCIÓN CLAVE ESTÁ AQUÍ ===
             // La respuesta (data.imageUrl) YA ES la imagen completa en formato data:URL.
-            // No necesitamos hacer un segundo fetch. La usamos directamente.
             const finalImageUrl = data.imageUrl;
 
-            if (lastObjectUrl) URL.revokeObjectURL(lastObjectUrl); // Limpiamos memoria si es necesario
+            if (lastObjectUrl) URL.revokeObjectURL(lastObjectUrl);
 
-            // Para los botones de descarga, necesitamos convertir el data:URL a un Blob URL.
+            // Para los botones de descarga, convertimos el data:URL a un Blob URL.
             const imageBlob = await (await fetch(finalImageUrl)).blob();
             const objectUrl = URL.createObjectURL(imageBlob);
             lastObjectUrl = objectUrl;
             lastResultUrl = objectUrl; 
 
-            // 2) Abrir modal y preparar los botones de descarga
-            openModalWithImage(objectUrl); // Usamos el nuevo objectUrl
+            // 3) Abrir modal y preparar los botones de descarga
+            openModalWithImage(objectUrl);
 
             if (downloadBtn) {
               downloadBtn.href = objectUrl;
