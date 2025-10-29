@@ -2287,69 +2287,63 @@
           const BACKEND_ORIGIN=window.location.origin;
           const toAbsolute=(url)=>!url?url:/^https?:\/\//i.test(url)?url:BACKEND_ORIGIN.replace(/\/+$/,'')+'/'+url.replace(/^\/+/,'')
 
-          async function generate(){
-            if(!selected || !promptEl?.value.trim()) return;
-            generateBtn.disabled=true;
-            if(statusEl) statusEl.textContent='Generando...';
+         async function generate() {
+          if (!selected || !promptEl?.value.trim()) return;
+          generateBtn.disabled = true;
+          if (statusEl) statusEl.textContent = 'Generando...';
 
-            showPromptLoader();
+          showPromptLoader();
 
-            try{
-              // 1) Tomar la imagen base seleccionada
-              const sourceBlob = await fetch(selected.src).then(r=>r.blob());
-              const base64 = await new Promise((res)=>{
-                const reader=new FileReader();
-                reader.onloadend=()=>res(reader.result.split(',')[1]);
-                reader.readAsDataURL(sourceBlob);
-              });
+          try {
+            // 1) Pedir al backend la imagen generada
+            const r = await fetch(`/api/generate`, { // Ya no necesitamos BACKEND_ORIGIN, es más simple así
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ imageBase64: selected.src, prompt: promptEl.value.trim() })
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
 
-              // 2) Pedir al backend la imagen generada
-              const r = await fetch(`${BACKEND_ORIGIN}/api/generate`,{
-                method:'POST',
-                headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({ imageBase64: base64, prompt: promptEl.value.trim() })
-              });
-              const data = await r.json();
-              if(!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+            // === LA CORRECCIÓN CLAVE ESTÁ AQUÍ ===
+            // La respuesta (data.imageUrl) YA ES la imagen completa en formato data:URL.
+            // No necesitamos hacer un segundo fetch. La usamos directamente.
+            const finalImageUrl = data.imageUrl;
 
-              // 3) Descargar la imagen final sin caché y convertirla a blob: URL única
-              const finalUrl = toAbsolute(data.imageUrl); // URL del backend (sin hash)
-              const imgResp = await fetch(finalUrl, { cache: 'no-store' });
-              const resultBlob = await imgResp.blob();
+            if (lastObjectUrl) URL.revokeObjectURL(lastObjectUrl); // Limpiamos memoria si es necesario
 
-              if (lastObjectUrl) URL.revokeObjectURL(lastObjectUrl); // liberar el anterior si existía
+            // Para los botones de descarga, necesitamos convertir el data:URL a un Blob URL.
+            const imageBlob = await (await fetch(finalImageUrl)).blob();
+            const objectUrl = URL.createObjectURL(imageBlob);
+            lastObjectUrl = objectUrl;
+            lastResultUrl = objectUrl; 
 
-              const objectUrl = URL.createObjectURL(resultBlob);
-              lastObjectUrl = objectUrl;
-              lastResultUrl = objectUrl; // usar esta en todos lados
+            // 2) Abrir modal y preparar los botones de descarga
+            openModalWithImage(objectUrl); // Usamos el nuevo objectUrl
 
-              // 4) Abrir modal y preparar botón de descarga de la caja
-              openModalWithImage(objectUrl, 'Resultado');
-
-              if (downloadBtn){
-                downloadBtn.href = objectUrl;
-                downloadBtn.setAttribute('download','qti.png');
-                downloadBtn.hidden = false;
-                downloadBtn.classList.remove('is-disabled');
-                downloadBtn.removeAttribute('aria-disabled');
-              }
-
-              // habilitar “Ver”
-              if (viewBtn){
-                viewBtn.hidden = false;
-                viewBtn.classList.remove('is-disabled');
-                viewBtn.removeAttribute('aria-disabled');
-              }
-
-              if(statusEl) statusEl.textContent='Listo ✨';
-            }catch(e){
-              console.error(e);
-              if(statusEl) statusEl.textContent='Error: '+e.message;
-            }finally{
-              hidePromptLoader();
-              if(generateBtn) generateBtn.disabled=false;
+            if (downloadBtn) {
+              downloadBtn.href = objectUrl;
+              downloadBtn.setAttribute('download', 'qti.png');
+              downloadBtn.hidden = false;
+              downloadBtn.classList.remove('is-disabled');
+              downloadBtn.removeAttribute('aria-disabled');
             }
+
+            if (viewBtn) {
+              viewBtn.hidden = false;
+              viewBtn.classList.remove('is-disabled');
+              viewBtn.removeAttribute('aria-disabled');
+            }
+
+            if (statusEl) statusEl.textContent = 'Listo ✨';
+
+          } catch (e) {
+            console.error(e);
+            if (statusEl) statusEl.textContent = 'Error: ' + e.message;
+          } finally {
+            hidePromptLoader();
+            if (generateBtn) generateBtn.disabled = false;
           }
+        }
 
           $('#generate')?.addEventListener('click', generate);
           $('#clear')?.addEventListener('click', ()=>{
