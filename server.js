@@ -18,7 +18,7 @@ if (!process.env.GEMINI_API_KEY) {
 
 // Usamos EXACTAMENTE la misma configuración de IA que funcionaba en Replit
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const MODEL_ID = 'gemini-1.5-flash'; // Usaremos 'gemini-1.5-flash' que es el sucesor compatible
+const MODEL_ID = 'gemini-2.5-flash-image';
 
 // Helpers (de tu código original)
 function parseDataUrlOrRaw(base64OrDataUrl) {
