@@ -1,4 +1,4 @@
-﻿      <!doctype html>
+﻿            <!doctype html>
       <html lang="es">
       <head>
         <meta charset="utf-8" />
@@ -906,7 +906,7 @@
           margin:0;
           padding:0;
           flex:0 0 auto;
-          max-width:760px;
+          max-width:900px;
           width:auto;
           flex-wrap:wrap;
         }
@@ -922,6 +922,11 @@
         .footer-logos img.is-center{ height:calc(var(--footer-logo-h) * .95); }
         .footer-logos img[alt="Toxi"]{
           height:calc(var(--footer-logo-h) * .55);
+        }
+
+        /* Nuevo logo Fundación: 150% del tamaño base (58px * 1.5 = 87px) */
+        .footer-logos img[alt="Fundación"] {
+          height: calc(var(--footer-logo-h) * 2.2);
         }
         @media (max-width:640px){
           .site-footer .footer-inner{
@@ -1875,19 +1880,23 @@
         <footer class="site-footer" role="contentinfo">
           <div class="container footer-inner">
             <p class="footer-credits">© 2025 QTI — ¿Qué Te Imaginás?</p>
-            <ul class="footer-logos" aria-label="Logos de organizaciones">
-              <li>
-                <img data-logo="perro" src="/logos/perro.png" alt="Perro" loading="lazy" decoding="async">
-              </li>
-              <li>
-                <img class="is-center" src="/logos/escuelaplus.png" alt="EscuelaPlus" loading="lazy" decoding="async">
-              </li>
-              <li>
-                <img src="/logos/toxi.png" alt="Toxi" loading="lazy" decoding="async">
-              </li>
-            </ul>
-          </div>
-        </footer>
+           <ul class="footer-logos" aria-label="Logos de organizaciones">
+            <li>
+              <img data-logo="perro" src="/logos/perro.png" alt="Perro" loading="lazy" decoding="async">
+            </li>
+
+            <li>
+              <img src="/logos/fundacion.png" alt="Fundación" loading="lazy" decoding="async">
+            </li>
+
+            <li>
+              <img class="is-center" src="/logos/escuelaplus.png" alt="EscuelaPlus" loading="lazy" decoding="async">
+            </li>
+
+            <li>
+              <img src="/logos/toxi.png" alt="Toxi" loading="lazy" decoding="async">
+            </li>
+          </ul>
 
         <!-- Modal de resultado -->
         <div class="modal" id="result-modal" role="dialog" aria-modal="true" aria-labelledby="result-title">
@@ -2498,3 +2507,4 @@
 
       </body>
       </html>
+
