@@ -1,4 +1,4 @@
-        <!doctype html>
+﻿        <!doctype html>
       <html lang="es">
       <head>
         <meta charset="utf-8" />
@@ -1686,6 +1686,36 @@
         line-height:1.45;
       }
 
+      .admin-lock{
+        position:fixed;
+        right:14px;
+        bottom:14px;
+        z-index:10001;
+        width:38px;
+        height:38px;
+        border-radius:999px;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        color:#111;
+        background:rgba(255,255,255,.72);
+        border:1px solid rgba(0,0,0,.12);
+        box-shadow:0 8px 22px rgba(0,0,0,.08);
+        opacity:.32;
+        transition:opacity .18s ease, transform .18s ease, background .18s ease;
+      }
+      .admin-lock:hover,
+      .admin-lock:focus-visible{
+        opacity:.9;
+        background:#fff;
+        transform:translateY(-1px);
+      }
+      .admin-lock svg{
+        width:17px;
+        height:17px;
+        display:block;
+      }
+
         </style>
 
 
@@ -1983,6 +2013,13 @@
           </div>
         </div>
 
+        <a class="admin-lock" href="/admin.html" aria-label="Acceso administrador" title="Acceso administrador">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </a>
+
         <!-- =========================
              JS
              ========================= -->
@@ -2006,6 +2043,42 @@
 
           // URL blob actual (para revocarla y no filtrar memoria)
           let lastObjectUrl = null;
+
+          function collectClientMeta(){
+            let referrerDomain = null;
+            try {
+              referrerDomain = document.referrer ? new URL(document.referrer).hostname : null;
+            } catch {}
+
+            return {
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              locale: navigator.language || null,
+              languages: Array.from(navigator.languages || []).slice(0, 4),
+              viewport: `${window.innerWidth}x${window.innerHeight}`,
+              screen: `${window.screen.width}x${window.screen.height}`,
+              path: location.pathname,
+              referrerDomain
+            };
+          }
+
+          function trackMetric(type, extra = {}){
+            try {
+              fetch('/api/metrics/event', {
+                method:'POST',
+                headers:{ 'Content-Type':'application/json' },
+                keepalive:true,
+                body:JSON.stringify({
+                  type,
+                  path:location.pathname,
+                  referrer:document.referrer,
+                  clientMeta:collectClientMeta(),
+                  ...extra
+                })
+              }).catch(()=>{});
+            } catch {}
+          }
+
+          trackMetric('page_view');
 
 
 
@@ -2320,6 +2393,7 @@
           // Evitar que descargue el HTML si todavía no hay resultado
           downloadBtn?.addEventListener('click', (e)=>{
             if(!lastResultUrl){ e.preventDefault(); }
+            else { trackMetric('download_click', { artworkId:selected?.id || null }); }
           });
 
           // “Ver”: reabre el modal con el último resultado si existe
@@ -2373,7 +2447,12 @@
             const r = await fetch(`/api/generate`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ imageBase64: base64, prompt: promptEl.value.trim() })
+              body: JSON.stringify({
+                imageBase64: base64,
+                prompt: promptEl.value.trim(),
+                artwork: selected,
+                clientMeta: collectClientMeta()
+              })
             });
             const data = await r.json();
             if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
@@ -2449,6 +2528,10 @@
           let   modalImg      = document.getElementById('modal-img');
           const modalClose    = document.getElementById('modal-close');
           const modalDownload = document.getElementById('modal-download');
+
+          modalDownload?.addEventListener('click', ()=>{
+            if(lastResultUrl) trackMetric('download_click', { artworkId:selected?.id || null });
+          });
 
           function openModalWithImage(src){
             if(!modal) return;

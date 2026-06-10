@@ -1,0 +1,9 @@
+node_modules/
+.npm-cache/
+.netlify-cli-home/
+.deploy-clean-*/
+.deploy-clean-*.zip
+.deploy-git/
+data/
+.env
+.netlify/

@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QTI Admin</title>
+  <style>
+    :root{
+      --bg:#f7f7f8;
+      --panel:#fff;
+      --ink:#171719;
+      --muted:#6e7078;
+      --line:#e2e3e7;
+      --accent:#e70d0c;
+      --accent2:#18c8dd;
+      --radius:8px;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.5 var(--font, inherit)}
+    button,input{font:inherit}
+    a{color:inherit}
+    .shell{width:min(1180px, calc(100vw - 32px));margin:0 auto;padding:24px 0 56px}
+    .topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px}
+    .brand{display:flex;flex-direction:column;gap:4px}
+    .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+    h1{font-size:clamp(26px,4vw,40px);line-height:1.05;margin:0}
+    .subtitle{margin:0;color:var(--muted);max-width:720px}
+    .top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:9px 13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+    .btn.primary{border-color:transparent;background:var(--ink);color:#fff}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .status-pill{border:1px solid var(--line);border-radius:999px;padding:8px 11px;background:#fff;color:var(--muted);font-size:13px}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+    .login{max-width:420px;margin:70px auto 0}
+    .login h2,.section-title{margin:0 0 10px;font-size:20px}
+    .login p{margin:0 0 16px;color:var(--muted)}
+    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+    .field label{font-size:13px;color:#3f4148}
+    .field input{width:100%;border:1px solid var(--line);border-radius:8px;padding:11px 12px;background:#fff;color:var(--ink)}
+    .error{color:#b00020;font-size:14px;min-height:20px}
+    .notice{border:1px solid #ffe1a6;background:#fff7e5;color:#6b4b00;border-radius:8px;padding:10px 12px;margin-top:12px;font-size:14px}
+    .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+    .metric{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+    .metric span{display:block;color:var(--muted);font-size:13px}
+    .metric strong{display:block;font-size:28px;line-height:1.1;margin-top:4px}
+    .grid-2{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-bottom:16px}
+    .chart{display:grid;grid-template-columns:repeat(14,1fr);gap:8px;align-items:stretch;height:220px;padding-top:6px}
+    .day{display:flex;flex-direction:column;justify-content:flex-end;gap:5px;height:100%;min-width:0}
+    .visit-count{min-height:18px;text-align:center;font-size:12px;font-weight:700;color:#3f4148;line-height:1.1}
+    .bars{display:flex;align-items:end;gap:2px;height:130px}
+    .bar{flex:1;border-radius:5px 5px 0 0;min-height:2px}
+    .bar.views{background:#cfd3dc}
+    .bar.gens{background:var(--accent)}
+    .bar.downs{background:var(--accent2)}
+    .day-label{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+    .legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin-top:10px}
+    .dot{width:10px;height:10px;border-radius:999px;display:inline-block;margin-right:6px}
+    .list{display:grid;gap:9px}
+    .list-row{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:8px}
+    .list-row:last-child{border-bottom:0;padding-bottom:0}
+    .list-row span{color:var(--muted);font-size:13px}
+    .gallery-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:22px 0 12px}
+    .gallery-head p{margin:0;color:var(--muted)}
+    .images{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+    .image-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;min-width:0}
+    .thumb{width:100%;aspect-ratio:1/1;object-fit:cover;background:#eee;display:block;cursor:pointer}
+    .image-body{padding:12px;display:grid;gap:8px}
+    .meta{display:flex;flex-wrap:wrap;gap:6px;color:var(--muted);font-size:12px}
+    .tag{border:1px solid var(--line);border-radius:999px;padding:3px 7px;background:#fafafa}
+    .prompt{margin:0;color:#333;font-size:14px}
+    .card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+    .small-btn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:7px 9px;cursor:pointer;font-size:13px}
+    .empty{padding:34px;text-align:center;color:var(--muted)}
+    .modal{position:fixed;inset:0;background:rgba(10,10,12,.72);display:none;align-items:center;justify-content:center;padding:22px;z-index:20}
+    .modal[open]{display:flex}
+    .modal-card{background:#fff;border-radius:8px;width:min(980px,96vw);max-height:92vh;overflow:auto}
+    .modal-card img{display:block;width:100%;max-height:76vh;object-fit:contain;background:#111}
+    .modal-info{padding:13px 15px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .muted{color:var(--muted)}
+    [hidden]{display:none!important}
+    @media (max-width:900px){
+      .topbar{flex-direction:column}
+      .top-actions{justify-content:flex-start}
+      .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .grid-2{grid-template-columns:1fr}
+      .images{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media (max-width:580px){
+      .shell{width:min(100vw - 20px, 1180px);padding-top:14px}
+      .metrics,.images{grid-template-columns:1fr}
+      .chart{gap:4px}
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topbar">
+      <div class="brand">
+        <div class="eyebrow">QTI Admin</div>
+        <h1>Dashboard</h1>
+        <p class="subtitle">Imagenes generadas, ubicacion aproximada y metricas basicas de uso de la pagina.</p>
+      </div>
+      <div class="top-actions" id="top-actions" hidden>
+        <span class="status-pill" id="storage-pill">Base: ...</span>
+        <button class="btn" id="refresh" type="button">Actualizar</button>
+        <button class="btn" id="logout" type="button">Salir</button>
+      </div>
+    </div>
+
+    <section class="panel login" id="login-panel">
+      <h2>Acceso administrador</h2>
+      <p>Ingresá con el usuario y contraseña configurados en el servidor.</p>
+      <form id="login-form">
+        <div class="field">
+          <label for="username">Usuario</label>
+          <input id="username" name="username" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="password">Contraseña</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="btn primary" type="submit">Entrar</button>
+        <div class="error" id="login-error" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <section id="dashboard" hidden>
+      <div class="metrics" id="metrics"></div>
+
+      <div class="grid-2">
+        <section class="panel">
+          <h2 class="section-title">Actividad de los ultimos 14 dias</h2>
+          <div class="chart" id="chart"></div>
+          <div class="legend">
+            <span><i class="dot" style="background:#cfd3dc"></i>Visitas</span>
+            <span><i class="dot" style="background:var(--accent)"></i>Generaciones</span>
+            <span><i class="dot" style="background:var(--accent2)"></i>Descargas</span>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2 class="section-title">Resumen</h2>
+          <div class="list" id="summary-list"></div>
+        </section>
+      </div>
+
+      <div class="gallery-head">
+        <div>
+          <h2 class="section-title">Imagenes generadas</h2>
+          <p>Se muestran las ultimas 200, con ubicacion aproximada y prompt resumido.</p>
+        </div>
+      </div>
+      <div class="images" id="images"></div>
+    </section>
+  </main>
+
+  <div class="modal" id="image-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card">
+      <img id="modal-image" alt="Imagen generada">
+      <div class="modal-info">
+        <div>
+          <strong id="modal-title">Imagen generada</strong>
+          <div class="muted" id="modal-meta"></div>
+        </div>
+        <button class="btn" id="modal-close" type="button">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tokenKey = 'qtiAdminToken';
+    const loginPanel = document.getElementById('login-panel');
+    const dashboard = document.getElementById('dashboard');
+    const topActions = document.getElementById('top-actions');
+    const loginForm = document.getElementById('login-form');
+    const loginError = document.getElementById('login-error');
+    const metricsEl = document.getElementById('metrics');
+    const chartEl = document.getElementById('chart');
+    const summaryEl = document.getElementById('summary-list');
+    const imagesEl = document.getElementById('images');
+    const storagePill = document.getElementById('storage-pill');
+    const modal = document.getElementById('image-modal');
+    const modalImage = document.getElementById('modal-image');
+    const modalTitle = document.getElementById('modal-title');
+    const modalMeta = document.getElementById('modal-meta');
+    let token = sessionStorage.getItem(tokenKey);
+    let imageUrls = [];
+
+    function authHeaders() {
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    }
+
+    function clientMeta() {
+      const nav = window.navigator;
+      return {
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        locale: nav.language || null,
+        languages: Array.from(nav.languages || []).slice(0, 4),
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+        screen: `${window.screen.width}x${window.screen.height}`,
+        path: location.pathname,
+        referrerDomain: document.referrer ? new URL(document.referrer).hostname : null,
+      };
+    }
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat('es-AR').format(value || 0);
+    }
+
+    function formatDate(value) {
+      return new Intl.DateTimeFormat('es-AR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      }).format(new Date(value));
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes) return 'Sin dato';
+      const mb = bytes / 1024 / 1024;
+      return `${mb.toFixed(mb >= 1 ? 1 : 2)} MB`;
+    }
+
+    function locationLabel(location = {}) {
+      const parts = [location.city, location.region, location.country].filter(Boolean);
+      if (parts.length) return parts.join(', ');
+      if (location.timeZone) return location.timeZone;
+      if (location.countryCode) return location.countryCode;
+      return 'Sin dato';
+    }
+
+    function setLoggedIn(isLoggedIn) {
+      loginPanel.hidden = isLoggedIn;
+      dashboard.hidden = !isLoggedIn;
+      topActions.hidden = !isLoggedIn;
+    }
+
+    async function postMetric(type) {
+      try {
+        await fetch('/api/metrics/event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type, path: location.pathname, referrer: document.referrer, clientMeta: clientMeta() }),
+        });
+      } catch {}
+    }
+
+    async function login(event) {
+      event.preventDefault();
+      loginError.textContent = '';
+      const data = new FormData(loginForm);
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: data.get('username'),
+          password: data.get('password'),
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        loginError.textContent = payload.error || 'No se pudo ingresar.';
+        return;
+      }
+      token = payload.token;
+      sessionStorage.setItem(tokenKey, token);
+      await postMetric('admin_open');
+      await loadDashboard();
+    }
+
+    async function loadProtectedImage(id) {
+      const response = await fetch(`/api/admin/image/${id}`, { headers: authHeaders() });
+      if (!response.ok) throw new Error('No se pudo cargar la imagen.');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      imageUrls.push(url);
+      return url;
+    }
+
+    function clearImageUrls() {
+      imageUrls.forEach((url) => URL.revokeObjectURL(url));
+      imageUrls = [];
+    }
+
+    function renderMetrics(metrics) {
+      const cards = [
+        ['Generaciones', metrics.totalImages, `${metrics.generationsToday} hoy / ${metrics.generations7d} ult. 7 dias`],
+        ['Visitas', metrics.totalPageViews, `${metrics.pageViewsToday} hoy`],
+        ['Descargas', metrics.totalDownloads, `${metrics.downloadsToday} hoy`],
+        ['Errores IA', metrics.totalErrors, `${metrics.errorsToday} hoy`],
+      ];
+
+      metricsEl.innerHTML = '';
+      for (const [label, value, detail] of cards) {
+        const card = document.createElement('article');
+        card.className = 'metric';
+        card.innerHTML = `<span></span><strong></strong><span></span>`;
+        card.children[0].textContent = label;
+        card.children[1].textContent = formatNumber(value);
+        card.children[2].textContent = detail;
+        metricsEl.appendChild(card);
+      }
+    }
+
+    function renderChart(daily) {
+      const max = Math.max(1, ...daily.flatMap((day) => [day.pageViews, day.generations, day.downloads]));
+      chartEl.innerHTML = '';
+      for (const day of daily) {
+        const col = document.createElement('div');
+        col.className = 'day';
+        const visitCount = document.createElement('div');
+        visitCount.className = 'visit-count';
+        visitCount.textContent = formatNumber(day.pageViews);
+        visitCount.title = `${formatNumber(day.pageViews)} visitas`;
+        const bars = document.createElement('div');
+        bars.className = 'bars';
+        for (const [key, cls] of [['pageViews', 'views'], ['generations', 'gens'], ['downloads', 'downs']]) {
+          const bar = document.createElement('div');
+          bar.className = `bar ${cls}`;
+          bar.style.height = `${Math.max(2, (day[key] / max) * 100)}%`;
+          bar.title = `${day[key]} - ${key}`;
+          bars.appendChild(bar);
+        }
+        const label = document.createElement('div');
+        label.className = 'day-label';
+        label.textContent = day.date.slice(5);
+        col.append(visitCount, bars, label);
+        chartEl.appendChild(col);
+      }
+    }
+
+    function renderList(title, rows) {
+      const block = document.createElement('div');
+      const heading = document.createElement('p');
+      heading.className = 'muted';
+      heading.textContent = title;
+      block.appendChild(heading);
+
+      const list = document.createElement('div');
+      list.className = 'list';
+      const safeRows = rows.length ? rows : [{ label: 'Sin datos todavia', count: 0 }];
+      for (const row of safeRows) {
+        const item = document.createElement('div');
+        item.className = 'list-row';
+        const label = document.createElement('strong');
+        label.textContent = row.label;
+        const count = document.createElement('span');
+        count.textContent = formatNumber(row.count);
+        item.append(label, count);
+        list.appendChild(item);
+      }
+      block.appendChild(list);
+      return block;
+    }
+
+    function renderSummary(metrics) {
+      summaryEl.innerHTML = '';
+      summaryEl.append(
+        renderList('Obras mas elegidas', metrics.artworks),
+        renderList('Zonas aproximadas', metrics.locations),
+        renderList('Dispositivos', metrics.devices)
+      );
+    }
+
+    function downloadUrl(url, filename) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    function openModal(record, url) {
+      modalImage.src = url;
+      modalTitle.textContent = record.artworkTitle || 'Imagen generada';
+      modalMeta.textContent = `${formatDate(record.createdAt)} · ${locationLabel(record.location)} · ${formatBytes(record.bytes)}`;
+      modal.setAttribute('open', '');
+    }
+
+    async function renderImages(images) {
+      clearImageUrls();
+      imagesEl.innerHTML = '';
+      if (!images.length) {
+        const empty = document.createElement('div');
+        empty.className = 'panel empty';
+        empty.textContent = 'Todavia no hay imagenes generadas.';
+        imagesEl.appendChild(empty);
+        return;
+      }
+
+      for (const record of images) {
+        const card = document.createElement('article');
+        card.className = 'image-card';
+
+        const img = document.createElement('img');
+        img.className = 'thumb';
+        img.alt = record.artworkTitle || 'Imagen generada';
+
+        const body = document.createElement('div');
+        body.className = 'image-body';
+
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        for (const text of [formatDate(record.createdAt), record.artworkTitle || 'Obra sin dato', locationLabel(record.location)]) {
+          const tag = document.createElement('span');
+          tag.className = 'tag';
+          tag.textContent = text;
+          meta.appendChild(tag);
+        }
+
+        const prompt = document.createElement('p');
+        prompt.className = 'prompt';
+        prompt.textContent = record.promptPreview || 'Sin prompt guardado.';
+
+        const actions = document.createElement('div');
+        actions.className = 'card-actions';
+        const download = document.createElement('button');
+        download.className = 'small-btn';
+        download.type = 'button';
+        download.textContent = 'Descargar';
+        actions.appendChild(download);
+
+        body.append(meta, prompt, actions);
+        card.append(img, body);
+        imagesEl.appendChild(card);
+
+        try {
+          const url = await loadProtectedImage(record.id);
+          img.src = url;
+          img.addEventListener('click', () => openModal(record, url));
+          download.addEventListener('click', () => downloadUrl(url, `qti-${record.id}.png`));
+        } catch {
+          img.remove();
+          prompt.textContent = 'No se pudo cargar esta imagen.';
+          download.disabled = true;
+        }
+      }
+    }
+
+    async function loadDashboard() {
+      setLoggedIn(true);
+      const response = await fetch('/api/admin/dashboard', { headers: authHeaders() });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        sessionStorage.removeItem(tokenKey);
+        token = null;
+        setLoggedIn(false);
+        loginError.textContent = payload.error || 'La sesion vencio o no es valida.';
+        return;
+      }
+      storagePill.textContent = `Base: ${payload.storageDriver}`;
+      renderMetrics(payload.metrics);
+      renderChart(payload.metrics.daily);
+      renderSummary(payload.metrics);
+      await renderImages(payload.images);
+    }
+
+    document.getElementById('refresh').addEventListener('click', loadDashboard);
+    document.getElementById('logout').addEventListener('click', () => {
+      sessionStorage.removeItem(tokenKey);
+      token = null;
+      clearImageUrls();
+      setLoggedIn(false);
+    });
+    document.getElementById('modal-close').addEventListener('click', () => modal.removeAttribute('open'));
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) modal.removeAttribute('open');
+    });
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') modal.removeAttribute('open');
+    });
+    loginForm.addEventListener('submit', login);
+
+    if (token) {
+      loadDashboard();
+    }
+  </script>
+</body>
+</html>
