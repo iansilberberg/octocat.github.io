@@ -5,6 +5,7 @@ const DB_VERSION = 1;
 const DB_KEY = 'db.json';
 const MAX_EVENTS = 8000;
 const MAX_IMAGES = 2000;
+const STORE_NAME = process.env.QTI_BLOBS_STORE || ['qti', 'admin'].join('-');
 
 function emptyDb() {
   return { version: DB_VERSION, images: [], events: [] };
@@ -225,7 +226,7 @@ function delay(ms) {
 }
 
 function createFileDriver(dataDir) {
-  const dbPath = path.join(dataDir, 'qti-admin.json');
+  const dbPath = path.join(dataDir, `${STORE_NAME}.json`);
   const imageDir = path.join(dataDir, 'generated-images');
 
   async function ensureDirs() {
@@ -280,13 +281,13 @@ function createBlobDriver() {
         const context = readBlobsContext();
         if (context?.siteID && context?.token) {
           return loadStore({
-            name: 'qti-admin',
+            name: STORE_NAME,
             siteID: context.siteID,
             token: context.token,
             apiURL: process.env.NETLIFY_BLOBS_API_URL || 'https://api.netlify.com',
           });
         }
-        return loadStore('qti-admin');
+        return loadStore(STORE_NAME);
       });
     }
     return storePromise;

@@ -16,4 +16,4 @@ En local, si no se configuran `ADMIN_USER` y `ADMIN_PASSWORD`, el servidor usa `
 El acceso esta en `/admin.html` y tambien desde el candado sutil de la pagina publica. Las imagenes generadas y las metricas se guardan en:
 
 - Local: carpeta `data/`.
-- Netlify: Netlify Blobs, con el store `qti-admin`.
+- Netlify: Netlify Blobs.
