@@ -103,6 +103,7 @@
       </div>
       <div class="top-actions" id="top-actions" hidden>
         <span class="status-pill" id="storage-pill">Base: ...</span>
+        <span class="status-pill" id="sync-pill" aria-live="polite">Sincronizando...</span>
         <button class="btn" id="refresh" type="button">Actualizar</button>
         <button class="btn" id="logout" type="button">Salir</button>
       </div>
@@ -180,12 +181,17 @@
     const summaryEl = document.getElementById('summary-list');
     const imagesEl = document.getElementById('images');
     const storagePill = document.getElementById('storage-pill');
+    const syncPill = document.getElementById('sync-pill');
+    const refreshButton = document.getElementById('refresh');
     const modal = document.getElementById('image-modal');
     const modalImage = document.getElementById('modal-image');
     const modalTitle = document.getElementById('modal-title');
     const modalMeta = document.getElementById('modal-meta');
     let token = sessionStorage.getItem(tokenKey);
-    let imageUrls = [];
+    const imageUrls = new Map();
+    let imageSignature = null;
+    let dashboardLoading = false;
+    const refreshIntervalMs = 30_000;
 
     function authHeaders() {
       return token ? { Authorization: `Bearer ${token}` } : {};
@@ -273,13 +279,14 @@
       if (!response.ok) throw new Error('No se pudo cargar la imagen.');
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      imageUrls.push(url);
+      imageUrls.set(id, url);
       return url;
     }
 
     function clearImageUrls() {
       imageUrls.forEach((url) => URL.revokeObjectURL(url));
-      imageUrls = [];
+      imageUrls.clear();
+      imageSignature = null;
     }
 
     function renderMetrics(metrics) {
@@ -379,7 +386,13 @@
     }
 
     async function renderImages(images) {
-      clearImageUrls();
+      const activeIds = new Set(images.map((record) => record.id));
+      for (const [id, url] of imageUrls) {
+        if (!activeIds.has(id)) {
+          URL.revokeObjectURL(url);
+          imageUrls.delete(id);
+        }
+      }
       imagesEl.innerHTML = '';
       if (!images.length) {
         const empty = document.createElement('div');
@@ -426,7 +439,7 @@
         imagesEl.appendChild(card);
 
         try {
-          const url = await loadProtectedImage(record.id);
+          const url = imageUrls.get(record.id) || await loadProtectedImage(record.id);
           img.src = url;
           img.addEventListener('click', () => openModal(record, url));
           download.addEventListener('click', () => downloadUrl(url, `qti-${record.id}.png`));
@@ -438,31 +451,66 @@
       }
     }
 
-    async function loadDashboard() {
+    async function loadDashboard({ forceImages = false } = {}) {
+      if (!token || dashboardLoading) return;
+      dashboardLoading = true;
+      refreshButton.disabled = true;
+      syncPill.textContent = 'Sincronizando...';
       setLoggedIn(true);
-      const response = await fetch('/api/admin/dashboard', { headers: authHeaders() });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        sessionStorage.removeItem(tokenKey);
-        token = null;
-        setLoggedIn(false);
-        loginError.textContent = payload.error || 'La sesion vencio o no es valida.';
-        return;
+
+      try {
+        const response = await fetch('/api/admin/dashboard', {
+          headers: authHeaders(),
+          cache: 'no-store',
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          sessionStorage.removeItem(tokenKey);
+          token = null;
+          clearImageUrls();
+          setLoggedIn(false);
+          loginError.textContent = payload.error || 'La sesion vencio o no es valida.';
+          return;
+        }
+
+        storagePill.textContent = `Base: ${payload.storageDriver}`;
+        renderMetrics(payload.metrics);
+        renderChart(payload.metrics.daily);
+        renderSummary(payload.metrics);
+
+        const nextSignature = payload.images.map((record) => record.id).join('|');
+        if (forceImages || nextSignature !== imageSignature) {
+          await renderImages(payload.images);
+          imageSignature = nextSignature;
+        }
+
+        syncPill.textContent = `Actualizado ${new Intl.DateTimeFormat('es-AR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }).format(new Date())}`;
+      } catch (error) {
+        console.error('No se pudo actualizar el dashboard:', error);
+        syncPill.textContent = 'Sin conexion';
+      } finally {
+        dashboardLoading = false;
+        refreshButton.disabled = false;
       }
-      storagePill.textContent = `Base: ${payload.storageDriver}`;
-      renderMetrics(payload.metrics);
-      renderChart(payload.metrics.daily);
-      renderSummary(payload.metrics);
-      await renderImages(payload.images);
     }
 
-    document.getElementById('refresh').addEventListener('click', loadDashboard);
+    refreshButton.addEventListener('click', () => loadDashboard({ forceImages: true }));
     document.getElementById('logout').addEventListener('click', () => {
       sessionStorage.removeItem(tokenKey);
       token = null;
       clearImageUrls();
       setLoggedIn(false);
     });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && token) loadDashboard();
+    });
+    window.setInterval(() => {
+      if (!document.hidden && token) loadDashboard();
+    }, refreshIntervalMs);
     document.getElementById('modal-close').addEventListener('click', () => modal.removeAttribute('open'));
     modal.addEventListener('click', (event) => {
       if (event.target === modal) modal.removeAttribute('open');
@@ -473,7 +521,7 @@
     loginForm.addEventListener('submit', login);
 
     if (token) {
-      loadDashboard();
+      loadDashboard({ forceImages: true });
     }
   </script>
 </body>
